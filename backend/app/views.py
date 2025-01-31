@@ -213,7 +213,12 @@ class VendorDashboardViewSet(viewsets.ViewSet):
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    permission_classes = [IsVendorOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # Allow public read access
+    
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAuthenticated(), IsVendorOrReadOnly()]
+        return [permissions.AllowAny()]
 
     def perform_create(self, serializer):
         serializer.save(vendor=self.request.user)
@@ -384,13 +389,13 @@ class UserViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [IsAdministrator]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # Allow public read access
     lookup_field = 'slug'
     
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [permissions.AllowAny()]
-        return [IsAdministrator()]
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAuthenticated(), IsAdministrator()]
+        return [permissions.AllowAny()]
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer

@@ -6,7 +6,6 @@ from decimal import Decimal
 
 class User(AbstractUser):
     USER_TYPE_CHOICES = (
-        ('administrator', 'Administrator'),
         ('vendor', 'Vendor'),
         ('buyer', 'Buyer'),
     )

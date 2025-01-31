@@ -6,16 +6,32 @@ from datetime import datetime
 
 class JWTAuthMiddleware(MiddlewareMixin):
     def process_request(self, request):
+        # Allow OPTIONS requests for CORS
+        if request.method == 'OPTIONS':
+            return None
+
         # Exclude paths that don't need authentication
         excluded_paths = [
+            '/',  # Root path
+            '/api/token/',
+            '/api/token/refresh/',
+            '/api/token/verify/',
+            '/api/auth/',
             '/api/auth/login/',
             '/api/auth/registration/',
             '/administrator/',
-            '/admin/',  # Keep Django admin path
+            '/admin/',
             '/swagger/',
             '/redoc/',
+            '/static/',
+            '/media/',
+            '/favicon.ico',
         ]
         
+        # Allow public access to API GET requests
+        if request.method == 'GET' and request.path.startswith('/api/'):
+            return None
+            
         if any(request.path.startswith(path) for path in excluded_paths):
             return None
             
@@ -42,8 +58,15 @@ class JWTAuthMiddleware(MiddlewareMixin):
 
 class CORSMiddleware(MiddlewareMixin):
     def process_response(self, request, response):
-        response["Access-Control-Allow-Origin"] = settings.CORS_ORIGIN_WHITELIST
+        allowed_origins = settings.CORS_ORIGIN_WHITELIST
+        origin = request.headers.get('Origin')
+        
+        if origin in allowed_origins:
+            response["Access-Control-Allow-Origin"] = origin
+        else:
+            response["Access-Control-Allow-Origin"] = allowed_origins[0] if allowed_origins else '*'
+            
         response["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
         response["Access-Control-Allow-Credentials"] = "true"
         return response

@@ -5,7 +5,11 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  root: '.',  // Root directory where index.html is located
+  base: '/',
   server: {
+    port: 3000,
+    host: true,
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8000',
@@ -20,20 +24,29 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
-    port: 3000,
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'frontend/src'),  // Update the src path
+      '@components': path.resolve(__dirname, 'frontend/src/components'),
+      '@pages': path.resolve(__dirname, 'frontend/src/pages'),
+      '@services': path.resolve(__dirname, 'frontend/src/services'),
+      '@stores': path.resolve(__dirname, 'frontend/src/stores'),
+      '@types': path.resolve(__dirname, 'frontend/src/types'),
+    },
   },
   build: {
     outDir: 'dist',
-    assetsDir: 'static',
+    assetsDir: 'assets',
     emptyOutDir: true,
-    manifest: true,
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, 'index.html'),
+        main: path.resolve(__dirname, 'index.html'),  // Point to root index.html
       },
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
+          utils: ['@tanstack/react-query', 'axios'],
         },
       },
     },

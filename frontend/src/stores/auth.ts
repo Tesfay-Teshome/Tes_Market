@@ -1,62 +1,57 @@
 import { create } from 'zustand';
-import { User } from '../types';
-import { authService } from '../services/auth';
+import { persist } from 'zustand/middleware';
+import { User, LoginCredentials, RegisterData } from '../types/auth';
+import api from '../services/api';
 
 interface AuthState {
   user: User | null;
-  isLoading: boolean;
-  error: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string, role: 'buyer' | 'vendor') => Promise<void>;
-  logout: () => Promise<void>;
-  loadUser: () => Promise<void>;
+  isAuthenticated: boolean;
+  token: string | null;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => void;
+  setUser: (user: User) => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  isLoading: false,
-  error: null,
-
-  login: async (email, password) => {
-    try {
-      set({ isLoading: true, error: null });
-      const { token, user } = await authService.login({ email, password });
-      localStorage.setItem('token', token);
-      set({ user, isLoading: false });
-    } catch (error) {
-      set({ error: 'Invalid credentials', isLoading: false });
+const useAuth = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      isAuthenticated: false,
+      token: null,
+      login: async (credentials) => {
+        try {
+          const response = await api.post('/auth/login/', credentials);
+          const { user, token } = response.data;
+          set({ user, token, isAuthenticated: true });
+          localStorage.setItem('token', token);
+        } catch (error) {
+          throw error;
+        }
+      },
+      register: async (data) => {
+        try {
+          const response = await api.post('/auth/register/', data);
+          const { user, token } = response.data;
+          set({ user, token, isAuthenticated: true });
+          localStorage.setItem('token', token);
+        } catch (error) {
+          throw error;
+        }
+      },
+      logout: () => {
+        set({ user: null, token: null, isAuthenticated: false });
+        localStorage.removeItem('token');
+      },
+      setUser: (user) => {
+        set({ user });
+      },
+    }),
+    {
+      name: 'auth-storage',
+      getStorage: () => localStorage,
     }
-  },
+  )
+);
 
-  register: async (name, email, password, role) => {
-    try {
-      set({ isLoading: true, error: null });
-      const { token, user } = await authService.register({ name, email, password, role });
-      localStorage.setItem('token', token);
-      set({ user, isLoading: false });
-    } catch (error) {
-      set({ error: 'Registration failed', isLoading: false });
-    }
-  },
-
-  logout: async () => {
-    try {
-      await authService.logout();
-      localStorage.removeItem('token');
-      set({ user: null });
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  },
-
-  loadUser: async () => {
-    try {
-      set({ isLoading: true, error: null });
-      const user = await authService.getProfile();
-      set({ user, isLoading: false });
-    } catch (error) {
-      set({ error: 'Failed to load user', isLoading: false });
-      localStorage.removeItem('token');
-    }
-  },
-}));
+export { useAuth };
