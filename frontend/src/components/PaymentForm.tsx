@@ -17,6 +17,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, orderId, onSuccess, o
     event.preventDefault();
 
     if (!stripe || !elements) {
+      onError('Payment processing is not available. Please try again later.');
       return;
     }
 
@@ -26,6 +27,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, orderId, onSuccess, o
       const { error: submitError } = await elements.submit();
       if (submitError) {
         onError(submitError.message);
+        setIsProcessing(false);
         return;
       }
 
@@ -35,11 +37,13 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, orderId, onSuccess, o
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          amount,
-          order_id: orderId,
-        }),
+        body: JSON.stringify({ amount, orderId }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create payment intent');
+      }
 
       const { clientSecret } = await response.json();
 
@@ -52,12 +56,12 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ amount, orderId, onSuccess, o
       });
 
       if (confirmError) {
-        onError(confirmError.message);
-      } else {
-        onSuccess();
+        throw new Error(confirmError.message);
       }
-    } catch (error) {
-      onError('An unexpected error occurred.');
+
+      onSuccess();
+    } catch (error: any) {
+      onError(error.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setIsProcessing(false);
     }

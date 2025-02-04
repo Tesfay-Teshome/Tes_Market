@@ -1,281 +1,558 @@
-import React from 'react';
-import { ArrowRight, ShoppingBag, Truck, Shield, Clock, Star } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { 
+  ArrowRight, 
+  ShoppingBag, 
+  Truck, 
+  Shield, 
+  Clock, 
+  Star,
+  CheckCircle,
+  Users,
+  Package,
+  DollarSign,
+  UserPlus,
+  BookOpen
+} from 'lucide-react';
+import axios from '../utils/axios';
+import { toast } from 'react-hot-toast';
+import { Product } from '../types';
+import ProductCard from '../components/ProductCard';
+
+interface Category {
+  id: string;
+  name: string;
+  image: string;
+  productCount: number;
+}
+
+interface Testimonial {
+  id: string;
+  name: string;
+  role: string;
+  image: string;
+  content: string;
+  rating: number;
+}
+
+interface Stats {
+  customers: number;
+  vendors: number;
+  products: number;
+  transactions: number;
+}
+
+const fetchFeaturedProducts = async (): Promise<Product[]> => {
+  try {
+    const response = await axios.get('/api/products/featured/');
+    return response.data;
+  } catch (error) {
+    toast.error('Failed to load featured products');
+    return [];
+  }
+};
+
+const fetchCategories = async (): Promise<Category[]> => {
+  try {
+    const response = await axios.get('/api/categories/');
+    return response.data;
+  } catch (error) {
+    toast.error('Failed to load categories');
+    return [];
+  }
+};
+
+const fetchStats = async (): Promise<Stats> => {
+  try {
+    const response = await axios.get('/api/stats/');
+    return response.data;
+  } catch (error) {
+    toast.error('Failed to load stats');
+    return {
+      customers: 0,
+      vendors: 0,
+      products: 0,
+      transactions: 0,
+    };
+  }
+};
+
+// Sample testimonials (these usually don't come from the backend)
+const testimonials: Testimonial[] = [
+  {
+    id: '1',
+    name: 'Sarah Johnson',
+    role: 'Buyer',
+    image: 'https://randomuser.me/api/portraits/women/1.jpg',
+    content: 'Amazing marketplace! Found exactly what I was looking for at a great price.',
+    rating: 5,
+  },
+  {
+    id: '2',
+    name: 'Michael Chen',
+    role: 'Vendor',
+    image: 'https://randomuser.me/api/portraits/men/1.jpg',
+    content: 'Great platform for sellers. Easy to manage products and reach customers.',
+    rating: 5,
+  },
+];
 
 const Home = () => {
-  const featuredProducts = [
-    {
-      id: 1,
-      title: "Premium Headphones",
-      price: 299.99,
-      image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80",
-      vendor: "Audio Tech Pro"
-    },
-    {
-      id: 2,
-      title: "Smart Watch",
-      price: 199.99,
-      image: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=500&q=80",
-      vendor: "Tech Gear"
-    },
-    {
-      id: 3,
-      title: "Wireless Earbuds",
-      price: 149.99,
-      image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=500&q=80",
-      vendor: "Sound Masters"
-    },
-    {
-      id: 4,
-      title: "Digital Camera",
-      price: 599.99,
-      image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500&q=80",
-      vendor: "Photo Pro"
-    }
-  ];
+  const { 
+    data: featuredProducts,
+    isLoading: productsLoading,
+    error: productsError
+  } = useQuery({
+    queryKey: ['featuredProducts'],
+    queryFn: fetchFeaturedProducts,
+  });
 
-  const categories = [
-    {
-      id: 1,
-      name: "Electronics",
-      image: "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=500&q=80",
-      count: "1.2k+ products"
-    },
-    {
-      id: 2,
-      name: "Fashion",
-      image: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=500&q=80",
-      count: "3k+ products"
-    },
-    {
-      id: 3,
-      name: "Home & Living",
-      image: "https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=500&q=80",
-      count: "2.5k+ products"
-    },
-    {
-      id: 4,
-      name: "Sports",
-      image: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=500&q=80",
-      count: "800+ products"
-    }
-  ];
+  const {
+    data: categories,
+    isLoading: categoriesLoading,
+    error: categoriesError
+  } = useQuery({
+    queryKey: ['categories'],
+    queryFn: fetchCategories,
+  });
 
-  const testimonials = [
-    {
-      id: 1,
-      name: "Sarah Johnson",
-      role: "Buyer",
-      image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80",
-      content: "Amazing platform! Found unique products from trusted vendors. The quality and service exceeded my expectations."
-    },
-    {
-      id: 2,
-      name: "Michael Chen",
-      role: "Vendor",
-      image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&q=80",
-      content: "As a vendor, this platform has helped me reach more customers and grow my business significantly."
-    },
-    {
-      id: 3,
-      name: "Emily Davis",
-      role: "Buyer",
-      image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80",
-      content: "The variety of products and secure payment system make shopping here a breeze!"
-    }
-  ];
+  const {
+    data: stats,
+    isLoading: statsLoading,
+  } = useQuery({
+    queryKey: ['stats'],
+    queryFn: fetchStats,
+  });
+
+  if (productsError || categoriesError) {
+    toast.error('Something went wrong. Please try again later.');
+  }
 
   return (
-    <div className="space-y-16 pb-16">
-      {/* Hero Section */}
-      <section className="relative h-[600px] flex items-center">
-        <div 
-          className="absolute inset-0 z-0"
-          style={{
-            backgroundImage: "url('https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1920&q=80')",
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-black/50" />
-        </div>
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-white">
-          <h1 className="text-5xl font-bold mb-4 max-w-2xl">Discover Amazing Products from Trusted Vendors</h1>
-          <p className="text-xl mb-8 max-w-xl">Join thousands of satisfied customers shopping from our curated selection of quality products.</p>
-          <div className="flex gap-4">
-            <Link to="/products" className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium flex items-center">
-              Start Shopping
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-            <Link to="/vendor/register" className="bg-white text-gray-900 hover:bg-gray-100 px-6 py-3 rounded-lg font-medium">
-              Become a Vendor
-            </Link>
+    <div className="min-h-screen">
+      {/* Hero Section with Enhanced Animation */}
+      <section className="relative min-h-screen py-32 overflow-hidden particle-bg">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20 animate-gradient-xy"></div>
+        <div className="container mx-auto px-4 relative">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-5xl md:text-6xl font-extrabold mb-8 text-gradient-fancy neon-glow">
+              Your One-Stop Marketplace
+            </h1>
+            <p className="text-xl md:text-2xl text-gray-700 mb-12 animate-slide-up">
+              Join thousands of satisfied customers buying and selling products in our secure marketplace.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-6 justify-center">
+              <Link
+                to="/market"
+                className="btn-shiny glass-morphism px-8 py-4 text-lg font-semibold text-white bg-blue-600 rounded-full hover:bg-blue-700 transform hover:scale-105 transition-all duration-300"
+              >
+                Start Shopping
+                <ArrowRight className="inline-block ml-2 h-5 w-5" />
+              </Link>
+              <Link
+                to="/login"
+                className="ripple-effect px-8 py-4 text-lg font-semibold text-blue-600 border-2 border-blue-600 rounded-full hover:bg-blue-50 transform hover:scale-105 transition-all duration-300"
+              >
+                Become a Vendor
+                <UserPlus className="inline-block ml-2 h-5 w-5" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Floating Elements */}
+          <div className="absolute top-1/4 left-10 floating" style={{ animationDelay: '0.5s' }}>
+            <div className="w-20 h-20 bg-blue-500/10 rounded-full backdrop-blur-lg"></div>
+          </div>
+          <div className="absolute bottom-1/4 right-10 floating" style={{ animationDelay: '1s' }}>
+            <div className="w-32 h-32 bg-purple-500/10 rounded-full backdrop-blur-lg"></div>
+          </div>
+          <div className="absolute top-1/3 right-1/4 floating" style={{ animationDelay: '1.5s' }}>
+            <div className="w-16 h-16 bg-pink-500/10 rounded-full backdrop-blur-lg"></div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="flex items-center gap-4 p-6 bg-white rounded-xl shadow-sm">
-            <div className="bg-indigo-100 p-3 rounded-lg">
-              <ShoppingBag className="h-6 w-6 text-indigo-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold">Wide Selection</h3>
-              <p className="text-sm text-gray-600">Thousands of products</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 p-6 bg-white rounded-xl shadow-sm">
-            <div className="bg-indigo-100 p-3 rounded-lg">
-              <Truck className="h-6 w-6 text-indigo-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold">Fast Delivery</h3>
-              <p className="text-sm text-gray-600">Quick & reliable shipping</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 p-6 bg-white rounded-xl shadow-sm">
-            <div className="bg-indigo-100 p-3 rounded-lg">
-              <Shield className="h-6 w-6 text-indigo-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold">Secure Payments</h3>
-              <p className="text-sm text-gray-600">100% protected</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 p-6 bg-white rounded-xl shadow-sm">
-            <div className="bg-indigo-100 p-3 rounded-lg">
-              <Clock className="h-6 w-6 text-indigo-600" />
-            </div>
-            <div>
-              <h3 className="font-semibold">24/7 Support</h3>
-              <p className="text-sm text-gray-600">Always here to help</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Products */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-3xl font-bold">Featured Products</h2>
-            <p className="text-gray-600 mt-2">Handpicked products from our trusted vendors</p>
-          </div>
-          <Link to="/products" className="text-indigo-600 hover:text-indigo-700 font-medium flex items-center">
-            View All
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.map((product) => (
-            <div key={product.id} className="bg-white rounded-xl shadow-sm overflow-hidden group">
-              <div className="relative">
-                <img 
-                  src={product.image} 
-                  alt={product.title}
-                  className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-200"
-                />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                  <button className="bg-white text-gray-900 px-4 py-2 rounded-lg font-medium transform -translate-y-2 group-hover:translate-y-0 transition-transform duration-200">
-                    Quick View
-                  </button>
-                </div>
-              </div>
-              <div className="p-4">
-                <p className="text-sm text-gray-500 mb-1">{product.vendor}</p>
-                <h3 className="font-semibold text-lg mb-2">{product.title}</h3>
-                <div className="flex items-center justify-between">
-                  <p className="text-indigo-600 font-bold">${product.price}</p>
-                  <div className="flex items-center text-yellow-400">
-                    <Star className="h-4 w-4 fill-current" />
-                    <span className="text-gray-600 text-sm ml-1">4.8</span>
+      {/* Features Section with Enhanced Design */}
+      <section className="py-20 bg-gradient-to-br from-gray-50 to-white relative overflow-hidden">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold text-center mb-16 text-gradient-fancy">
+            Why Choose Tes Market?
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              {
+                icon: <ShoppingBag className="h-8 w-8" />,
+                title: 'Wide Selection',
+                description: 'Browse through thousands of products from trusted vendors.'
+              },
+              {
+                icon: <Truck className="h-8 w-8" />,
+                title: 'Fast Delivery',
+                description: 'Get your products delivered quickly and efficiently.'
+              },
+              {
+                icon: <Shield className="h-8 w-8" />,
+                title: 'Secure Shopping',
+                description: 'Shop with confidence with our secure payment system.'
+              },
+              {
+                icon: <Clock className="h-8 w-8" />,
+                title: '24/7 Support',
+                description: 'Our customer support team is always here to help.'
+              }
+            ].map((feature, index) => (
+              <div
+                key={index}
+                className="card-hover-fancy glass-morphism p-8 rounded-xl text-center transform-3d"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="flex justify-center mb-6">
+                  <div className="p-4 bg-blue-50 rounded-full text-blue-600 floating">
+                    {feature.icon}
                   </div>
                 </div>
+                <h3 className="text-xl font-semibold mb-4 text-gradient-fancy">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Categories */}
-      <section className="bg-gray-50 py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Shop by Category</h2>
-            <p className="text-gray-600">Explore our wide range of categories</p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categories.map((category) => (
-              <Link 
-                key={category.id}
-                to={`/products?category=${category.name.toLowerCase()}`}
-                className="relative group overflow-hidden rounded-xl"
-              >
-                <img 
-                  src={category.image} 
-                  alt={category.name}
-                  className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-200"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/20 flex flex-col justify-end p-6">
-                  <h3 className="text-white font-semibold text-xl mb-1">{category.name}</h3>
-                  <p className="text-gray-200 text-sm">{category.count}</p>
-                </div>
-              </Link>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">What Our Community Says</h2>
-          <p className="text-gray-600">Trusted by thousands of buyers and sellers</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {testimonials.map((testimonial) => (
-            <div key={testimonial.id} className="bg-white p-6 rounded-xl shadow-sm">
-              <div className="flex items-center gap-4 mb-4">
-                <img 
-                  src={testimonial.image} 
-                  alt={testimonial.name}
-                  className="w-12 h-12 rounded-full object-cover"
-                />
-                <div>
-                  <h4 className="font-semibold">{testimonial.name}</h4>
-                  <p className="text-sm text-gray-600">{testimonial.role}</p>
+      {/* Stats Section with Enhanced Animation */}
+      <section className="py-20 glass-morphism relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-purple-600/5 to-pink-600/5 animate-gradient-xy"></div>
+        <div className="container mx-auto px-4 relative">
+          <h2 className="text-4xl font-bold text-center mb-16 text-gradient-fancy neon-glow">
+            Our Growing Community
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {statsLoading ? (
+              Array(4).fill(null).map((_, i) => (
+                <div key={i} className="text-center animate-pulse">
+                  <div className="h-20 w-20 mx-auto bg-gray-200 rounded-full mb-4"></div>
+                  <div className="h-6 bg-gray-200 rounded w-32 mx-auto mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div>
                 </div>
-              </div>
-              <p className="text-gray-600">{testimonial.content}</p>
-              <div className="flex items-center text-yellow-400 mt-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-current" />
+              ))
+            ) : stats ? (
+              <>
+                {[
+                  { icon: <Users />, label: 'Happy Customers', value: stats.customers },
+                  { icon: <Package />, label: 'Products Listed', value: stats.products },
+                  { icon: <Users />, label: 'Active Vendors', value: stats.vendors },
+                  { icon: <DollarSign />, label: 'Transactions', value: stats.transactions }
+                ].map((stat, index) => (
+                  <div
+                    key={index}
+                    className="text-center hover-lift"
+                    style={{ animationDelay: `${index * 0.1}s` }}
+                  >
+                    <div className="bg-white/30 backdrop-blur-lg rounded-full p-6 w-24 h-24 mx-auto mb-6 floating">
+                      <div className="text-blue-600 h-12 w-12">{stat.icon}</div>
+                    </div>
+                    <div className="text-4xl font-bold text-gray-900 mb-2 text-gradient-fancy">
+                      {stat.value.toLocaleString()}+
+                    </div>
+                    <div className="text-gray-600 font-medium">{stat.label}</div>
+                  </div>
                 ))}
+              </>
+            ) : null}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Products Section */}
+      <section className="py-20 bg-gradient-to-br from-gray-50 to-white">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center mb-12">
+            <h2 className="text-4xl font-bold text-gradient-fancy">Featured Products</h2>
+            <Link
+              to="/products"
+              className="link-underline inline-flex items-center text-blue-600 hover:text-blue-700 font-medium"
+            >
+              View All <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {productsLoading ? (
+              Array(4).fill(null).map((_, i) => (
+                <div
+                  key={i}
+                  className="animate-pulse bg-white rounded-xl overflow-hidden shadow-sm"
+                >
+                  <div className="h-48 bg-gray-200"></div>
+                  <div className="p-6">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))
+            ) : featuredProducts && featuredProducts.length > 0 ? (
+              featuredProducts.map((product, index) => (
+                <div
+                  key={product.id}
+                  className="card-hover-fancy"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <ProductCard
+                    id={product.id}
+                    title={product.title}
+                    price={product.price}
+                    imageUrl={product.images[0]}
+                    description={product.description}
+                    vendor={product.vendorId}
+                  />
+                </div>
+              ))
+            ) : (
+              <div className="col-span-4 text-center py-16">
+                <Package className="h-16 w-16 text-gray-400 mx-auto mb-6" />
+                <h3 className="text-xl font-medium text-gray-900 mb-2">No Products Found</h3>
+                <p className="text-gray-500">Check back later for featured products.</p>
               </div>
-            </div>
-          ))}
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Categories Section */}
+      <section className="py-20 glass-morphism relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-purple-600/5 to-pink-600/5 animate-gradient-xy"></div>
+        <div className="container mx-auto px-4 relative">
+          <h2 className="text-4xl font-bold mb-12 text-center text-gradient-fancy">Shop by Category</h2>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            {categoriesLoading ? (
+              Array(4).fill(null).map((_, i) => (
+                <div
+                  key={i}
+                  className="animate-pulse bg-white rounded-xl overflow-hidden shadow-sm"
+                >
+                  <div className="h-40 bg-gray-200"></div>
+                  <div className="p-4">
+                    <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                  </div>
+                </div>
+              ))
+            ) : categories && categories.length > 0 ? (
+              categories.map((category, index) => (
+                <Link
+                  key={category.id}
+                  to={`/products?category=${category.id}`}
+                  className="group card-hover-fancy"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <div className="relative rounded-xl overflow-hidden">
+                    <div className="aspect-w-16 aspect-h-9">
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="w-full h-40 object-cover transform transition-transform duration-500 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end p-6">
+                        <div>
+                          <h3 className="text-white font-semibold text-xl mb-1">{category.name}</h3>
+                          <p className="text-white/90 text-sm">{category.productCount} Products</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="col-span-4 text-center py-16">
+                <Package className="h-16 w-16 text-gray-400 mx-auto mb-6" />
+                <h3 className="text-xl font-medium text-gray-900 mb-2">No Categories Found</h3>
+                <p className="text-gray-500">Check back later for product categories.</p>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="bg-indigo-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="text-white">
-              <h2 className="text-3xl font-bold mb-4">Start Selling Today</h2>
-              <p className="text-indigo-100 max-w-xl">Join our community of successful vendors and reach thousands of customers. Low commission rates and powerful tools to grow your business.</p>
+      <section className="py-20">
+        <div className="container mx-auto px-4">
+          <div className="glass-morphism rounded-3xl py-16 px-8 md:px-16 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/90 to-purple-600/90"></div>
+            <div className="relative">
+              <div className="max-w-4xl mx-auto text-center">
+                <h2 className="text-4xl font-bold mb-6 text-white neon-glow">
+                  Start Selling on Tes Market
+                </h2>
+                <p className="text-xl mb-10 text-white/90">
+                  Join our community of successful vendors and start growing your business today.
+                  We provide all the tools you need to reach customers worldwide.
+                </p>
+                <div className="flex flex-col md:flex-row gap-6 justify-center">
+                  <Link
+                    to="/login"
+                    className="btn-shiny glass-morphism px-8 py-4 text-lg font-semibold bg-white text-blue-600 rounded-full hover:bg-blue-50 transform hover:scale-105 transition-all duration-300"
+                  >
+                    Register as Vendor
+                    <ArrowRight className="inline-block ml-2 h-5 w-5" />
+                  </Link>
+                  <Link
+                    to="/market"
+                    className="ripple-effect px-8 py-4 text-lg font-semibold border-2 border-white text-white rounded-full hover:bg-white/10 transform hover:scale-105 transition-all duration-300"
+                  >
+                    Learn More
+                    <BookOpen className="inline-block ml-2 h-5 w-5" />
+                  </Link>
+                </div>
+              </div>
             </div>
-            <Link 
-              to="/vendor/register"
-              className="bg-white text-indigo-600 hover:bg-indigo-50 px-8 py-3 rounded-lg font-medium whitespace-nowrap"
-            >
-              Become a Vendor
-            </Link>
           </div>
         </div>
       </section>
+
+      {/* Testimonials Section */}
+      <section className="py-20 bg-gradient-to-br from-gray-50 to-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-16 text-center text-gradient-fancy">
+            What Our Users Say
+          </h2>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {testimonials.map((testimonial, index) => (
+              <div
+                key={testimonial.id}
+                className="card-hover-fancy glass-morphism p-8 rounded-xl"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="flex items-center mb-6">
+                  <img
+                    src={testimonial.image}
+                    alt={testimonial.name}
+                    className="w-14 h-14 rounded-full border-2 border-blue-500 mr-4"
+                  />
+                  <div>
+                    <h4 className="font-semibold text-lg">{testimonial.name}</h4>
+                    <p className="text-gray-600">{testimonial.role}</p>
+                  </div>
+                </div>
+                <p className="text-gray-600 mb-6 italic">"{testimonial.content}"</p>
+                <div className="flex items-center">
+                  {Array.from({ length: testimonial.rating }).map((_, i) => (
+                    <Star
+                      key={i}
+                      className="h-5 w-5 text-yellow-400 fill-current"
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Why Choose Us Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-12 text-center gradient-text">Why Choose Tes Market</h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: <CheckCircle className="h-8 w-8 text-blue-600" />,
+                title: 'Quality Assurance',
+                description: 'All our vendors are carefully vetted to ensure high-quality products and service.'
+              },
+              {
+                icon: <Shield className="h-8 w-8 text-blue-600" />,
+                title: 'Secure Payments',
+                description: 'Your transactions are protected with industry-standard security measures.'
+              },
+              {
+                icon: <Users className="h-8 w-8 text-blue-600" />,
+                title: 'Community Support',
+                description: 'Join a thriving community of buyers and sellers from around the world.'
+              }
+            ].map((feature, index) => (
+              <div
+                key={index}
+                className="card-hover text-center animate-slide-up"
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="bg-blue-100 rounded-full p-4 w-16 h-16 flex items-center justify-center mx-auto mb-6">
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-semibold mb-4">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer Section */}
+      <footer className="bg-gray-50 py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div>
+              <h3 className="text-lg font-bold mb-4">About Us</h3>
+              <p className="text-gray-600">
+                Tes Market is a platform that connects buyers and sellers from around the world.
+              </p>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold mb-4">Help & Support</h3>
+              <ul>
+                <li className="mb-2">
+                  <Link to="/help" className="text-gray-600 hover:text-blue-600">
+                    Help Center
+                  </Link>
+                </li>
+                <li className="mb-2">
+                  <Link to="/contact" className="text-gray-600 hover:text-blue-600">
+                    Contact Us
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold mb-4">Social Media</h3>
+              <ul>
+                <li className="mb-2">
+                  <Link to="#" className="text-gray-600 hover:text-blue-600">
+                    Facebook
+                  </Link>
+                </li>
+                <li className="mb-2">
+                  <Link to="#" className="text-gray-600 hover:text-blue-600">
+                    Twitter
+                  </Link>
+                </li>
+                <li className="mb-2">
+                  <Link to="#" className="text-gray-600 hover:text-blue-600">
+                    Instagram
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold mb-4">Newsletter</h3>
+              <p className="text-gray-600">
+                Stay up to date with the latest news and updates from Tes Market.
+              </p>
+              <form>
+                <input
+                  type="email"
+                  placeholder="Enter your email address"
+                  className="w-full py-2 pl-10 text-sm text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
+                />
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
+                >
+                  Subscribe
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

@@ -13,6 +13,7 @@ router.register(r'users', views.UserViewSet, basename='user')
 # Product management
 router.register(r'categories', views.CategoryViewSet, basename='category')
 router.register(r'products', views.ProductViewSet, basename='product')
+router.register(r'testimonials', views.TestimonialViewSet, basename='testimonial')
 
 # Shopping
 router.register(r'cart', views.CartViewSet, basename='cart')

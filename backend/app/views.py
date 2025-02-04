@@ -13,12 +13,13 @@ from .models import (
     User, Category, Product, ProductImage, ProductVariant,
     Cart, CartItem, Order, OrderItem, Transaction, Review,
     Wishlist, WishlistItem, VendorEarning, VendorAnalytics,
-    AdministratorDashboardMetrics
+    AdministratorDashboardMetrics, Testimonial
 )
 from .serializers import (
     UserSerializer, CategorySerializer, ProductSerializer,
     CartSerializer, OrderSerializer, TransactionSerializer,
-    ReviewSerializer, WishlistSerializer, AdministratorDashboardMetricsSerializer
+    ReviewSerializer, WishlistSerializer, AdministratorDashboardMetricsSerializer,
+    TestimonialSerializer
 )
 
 User = get_user_model()
@@ -210,11 +211,25 @@ class VendorDashboardViewSet(viewsets.ViewSet):
             )['amount__sum'] or 0
         })
 
+class TestimonialViewSet(viewsets.ModelViewSet):
+    queryset = Testimonial.objects.filter(is_active=True)
+    serializer_class = TestimonialSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAuthenticated(), IsAdminUser()]
+        return [permissions.AllowAny()]
+
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # Allow public read access
-    
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['category', 'vendor', 'featured']
+    search_fields = ['name', 'description']
+    ordering_fields = ['created_at', 'price']
+
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [IsAuthenticated(), IsVendorOrReadOnly()]
@@ -223,18 +238,27 @@ class ProductViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(vendor=self.request.user)
 
+    @action(detail=False, methods=['get'])
+    def featured(self, request):
+        featured_products = Product.objects.filter(
+            featured=True, 
+            is_active=True, 
+            approval_status='approved'
+        ).order_by('-created_at')[:8]
+        serializer = self.get_serializer(featured_products, many=True)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['post'])
     def approve(self, request, pk=None):
-        if not request.user.is_administrator:
+        if not request.user.is_staff:
             return Response(
-                {'error': 'Only administrators can approve products'},
+                {"detail": "You do not have permission to perform this action."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
         product = self.get_object()
         product.approval_status = 'approved'
         product.save()
-        return Response({'message': 'Product approved successfully'})
+        return Response({"detail": "Product approved successfully."})
 
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer

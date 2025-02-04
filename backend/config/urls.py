@@ -28,7 +28,7 @@ schema_view = get_schema_view(
 
 urlpatterns = [
     # Django Admin
-    path('administrator/', admin.site.urls),
+    path('admin/', admin.site.urls),
     
     # Home page (no authentication required)
     path('', TemplateView.as_view(template_name='index.html'), name='home'),

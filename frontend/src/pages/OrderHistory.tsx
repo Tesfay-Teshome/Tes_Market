@@ -5,14 +5,13 @@ import { Link } from 'react-router-dom';
 
 interface OrderItem {
   id: number;
+  quantity: number;
+  total: number;
   product: {
     id: number;
     title: string;
     price: number;
   };
-  quantity: number;
-  price: number;
-  total: number;
 }
 
 interface Order {

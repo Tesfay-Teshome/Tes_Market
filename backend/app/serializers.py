@@ -4,7 +4,7 @@ from .models import (
     Category, Product, ProductImage, ProductVariant,
     Cart, CartItem, Order, OrderItem, Transaction,
     Review, Wishlist, WishlistItem, VendorEarning,
-    VendorAnalytics, AdministratorDashboardMetrics
+    VendorAnalytics, AdministratorDashboardMetrics, Testimonial
 )
 
 User = get_user_model()
@@ -198,6 +198,11 @@ class WishlistSerializer(serializers.ModelSerializer):
         model = Wishlist
         fields = ('id', 'user', 'items', 'created_at')
         read_only_fields = ('user',)
+
+class TestimonialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Testimonial
+        fields = ['id', 'name', 'role', 'image', 'content', 'rating', 'created_at']
 
 class VendorAnalyticsSerializer(serializers.ModelSerializer):
     class Meta:
