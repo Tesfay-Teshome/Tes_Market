@@ -44,14 +44,16 @@ const Navbar = () => {
 
   return (
     <nav className={`fixed w-full z-50 transition-all duration-300 ${
-      isScrolled ? 'bg-white/90 backdrop-blur-md shadow-lg' : 'bg-transparent'
+      isScrolled 
+      ? 'bg-gradient-to-r from-blue-900 to-purple-900 shadow-lg' 
+      : 'bg-gradient-to-r from-blue-800/90 to-purple-800/90 backdrop-blur-sm'
     }`}>
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link 
             to="/" 
-            className="flex items-center space-x-2 text-gradient-animate hover:scale-105 transition-transform duration-300"
+            className="flex items-center space-x-2 text-white hover:scale-105 transition-transform duration-300"
           >
             <ShoppingBag className="h-8 w-8" />
             <span className="text-xl font-bold">Tes Market</span>
@@ -61,31 +63,31 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-8">
             <Link 
               to="/" 
-              className="nav-link text-gray-700 hover:text-blue-600 transition-colors duration-300"
+              className="nav-link text-gray-100 hover:text-white transition-colors duration-300"
             >
               Home
             </Link>
             <Link 
               to="/products" 
-              className="nav-link text-gray-700 hover:text-blue-600 transition-colors duration-300"
+              className="nav-link text-gray-100 hover:text-white transition-colors duration-300"
             >
               Products
             </Link>
             <Link 
               to="/contact" 
-              className="nav-link text-gray-700 hover:text-blue-600 transition-colors duration-300"
+              className="nav-link text-gray-100 hover:text-white transition-colors duration-300"
             >
               Contact
             </Link>
             <Link 
               to="/about" 
-              className="nav-link text-gray-700 hover:text-blue-600 transition-colors duration-300"
+              className="nav-link text-gray-100 hover:text-white transition-colors duration-300"
             >
               About
             </Link>
             <Link 
               to="/faq" 
-              className="nav-link text-gray-700 hover:text-blue-600 transition-colors duration-300"
+              className="nav-link text-gray-100 hover:text-white transition-colors duration-300"
             >
               FAQ
             </Link>
@@ -100,7 +102,7 @@ const Navbar = () => {
                       alt="Profile" 
                       className="w-8 h-8 rounded-full border-2 border-blue-500 hover:border-blue-600 transition-colors"
                     />
-                    <span className="text-gray-700 group-hover:text-blue-600 transition-colors duration-300">
+                    <span className="text-gray-100 group-hover:text-white transition-colors duration-300">
                       {user?.name}
                     </span>
                   </button>
@@ -130,7 +132,7 @@ const Navbar = () => {
               <div className="flex items-center space-x-4">
                 <Link
                   to="/auth/login"
-                  className="btn-animate px-6 py-2 text-blue-600 border-2 border-blue-600 rounded-full hover:bg-blue-50 transition-colors duration-300"
+                  className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:from-blue-700 hover:to-purple-700 transition-all duration-300"
                 >
                   Login
                 </Link>
@@ -150,9 +152,9 @@ const Navbar = () => {
             className="md:hidden focus:outline-none"
           >
             {isMenuOpen ? (
-              <X className="h-6 w-6 text-gray-700" />
+              <X className="h-6 w-6 text-gray-100" />
             ) : (
-              <Menu className="h-6 w-6 text-gray-700" />
+              <Menu className="h-6 w-6 text-gray-100" />
             )}
           </button>
         </div>
@@ -166,31 +168,31 @@ const Navbar = () => {
           <div className="py-4 space-y-4">
             <Link 
               to="/" 
-              className="block text-gray-700 hover:text-blue-600 transition-colors duration-300"
+              className="block text-gray-100 hover:text-white transition-colors duration-300"
             >
               Home
             </Link>
             <Link 
               to="/products" 
-              className="block text-gray-700 hover:text-blue-600 transition-colors duration-300"
+              className="block text-gray-100 hover:text-white transition-colors duration-300"
             >
               Products
             </Link>
             <Link 
               to="/contact" 
-              className="block text-gray-700 hover:text-blue-600 transition-colors duration-300"
+              className="block text-gray-100 hover:text-white transition-colors duration-300"
             >
               Contact
             </Link>
             <Link 
               to="/about" 
-              className="block text-gray-700 hover:text-blue-600 transition-colors duration-300"
+              className="block text-gray-100 hover:text-white transition-colors duration-300"
             >
               About
             </Link>
             <Link 
               to="/faq" 
-              className="block text-gray-700 hover:text-blue-600 transition-colors duration-300"
+              className="block text-gray-100 hover:text-white transition-colors duration-300"
             >
               FAQ
             </Link>
@@ -199,13 +201,13 @@ const Navbar = () => {
               <div className="space-y-4">
                 <Link 
                   to="/market" 
-                  className="block text-gray-700 hover:text-blue-600 transition-colors duration-300"
+                  className="block text-gray-100 hover:text-white transition-colors duration-300"
                 >
                   Profile
                 </Link>
                 <Link 
                   to="/orders" 
-                  className="block text-gray-700 hover:text-blue-600 transition-colors duration-300"
+                  className="block text-gray-100 hover:text-white transition-colors duration-300"
                 >
                   Orders
                 </Link>
@@ -220,7 +222,7 @@ const Navbar = () => {
               <div className="space-y-4">
                 <Link
                   to="/auth/login"
-                  className="block px-6 py-2 text-blue-600 border-2 border-blue-600 rounded-full hover:bg-blue-50 text-center transition-colors duration-300"
+                  className="block px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:from-blue-700 hover:to-purple-700 transition-all duration-300"
                 >
                   Login
                 </Link>

@@ -131,11 +131,11 @@ const Home = () => {
   return (
     <div className="min-h-screen">
       {/* Hero Section with Enhanced Animation */}
-      <section className="relative min-h-screen py-32 overflow-hidden particle-bg">
+      <section className="relative min-h-screen py-40 mt-24 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20 animate-gradient-xy"></div>
         <div className="container mx-auto px-4 relative">
           <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-5xl md:text-6xl font-extrabold mb-8 text-gradient-fancy neon-glow">
+            <h1 className="text-5xl md:text-6xl font-extrabold mb-8 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
               Your One-Stop Marketplace
             </h1>
             <p className="text-xl md:text-2xl text-gray-700 mb-12 animate-slide-up">
@@ -144,38 +144,27 @@ const Home = () => {
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
               <Link
                 to="/market"
-                className="btn-shiny glass-morphism px-8 py-4 text-lg font-semibold text-white bg-blue-600 rounded-full hover:bg-blue-700 transform hover:scale-105 transition-all duration-300"
+                className="btn-fancy px-8 py-4 text-lg font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 Start Shopping
                 <ArrowRight className="inline-block ml-2 h-5 w-5" />
               </Link>
               <Link
                 to="/login"
-                className="ripple-effect px-8 py-4 text-lg font-semibold text-blue-600 border-2 border-blue-600 rounded-full hover:bg-blue-50 transform hover:scale-105 transition-all duration-300"
+                className="btn-outline-fancy px-8 py-4 text-lg font-semibold text-blue-600 border-2 border-blue-600 rounded-full hover:bg-blue-50 transform hover:scale-105 transition-all duration-300 shadow-md hover:shadow-lg"
               >
                 Become a Vendor
                 <UserPlus className="inline-block ml-2 h-5 w-5" />
               </Link>
             </div>
           </div>
-
-          {/* Floating Elements */}
-          <div className="absolute top-1/4 left-10 floating" style={{ animationDelay: '0.5s' }}>
-            <div className="w-20 h-20 bg-blue-500/10 rounded-full backdrop-blur-lg"></div>
-          </div>
-          <div className="absolute bottom-1/4 right-10 floating" style={{ animationDelay: '1s' }}>
-            <div className="w-32 h-32 bg-purple-500/10 rounded-full backdrop-blur-lg"></div>
-          </div>
-          <div className="absolute top-1/3 right-1/4 floating" style={{ animationDelay: '1.5s' }}>
-            <div className="w-16 h-16 bg-pink-500/10 rounded-full backdrop-blur-lg"></div>
-          </div>
         </div>
       </section>
 
       {/* Features Section with Enhanced Design */}
-      <section className="py-20 bg-gradient-to-br from-gray-50 to-white relative overflow-hidden">
+      <section className="py-24 bg-gradient-to-br from-gray-50 to-white relative overflow-hidden">
         <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-bold text-center mb-16 text-gradient-fancy">
+          <h2 className="text-4xl font-bold text-center mb-16 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
             Why Choose Tes Market?
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -220,10 +209,10 @@ const Home = () => {
       </section>
 
       {/* Stats Section with Enhanced Animation */}
-      <section className="py-20 glass-morphism relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-purple-600/5 to-pink-600/5 animate-gradient-xy"></div>
+      <section className="py-24 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-white"></div>
         <div className="container mx-auto px-4 relative">
-          <h2 className="text-4xl font-bold text-center mb-16 text-gradient-fancy neon-glow">
+          <h2 className="text-4xl font-bold text-center mb-16 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
             Our Growing Community
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -264,7 +253,7 @@ const Home = () => {
       </section>
 
       {/* Featured Products Section */}
-      <section className="py-20 bg-gradient-to-br from-gray-50 to-white">
+      <section className="py-24 bg-gradient-to-br from-gray-50 to-white">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-12">
             <h2 className="text-4xl font-bold text-gradient-fancy">Featured Products</h2>
@@ -319,7 +308,7 @@ const Home = () => {
       </section>
 
       {/* Categories Section */}
-      <section className="py-20 glass-morphism relative overflow-hidden">
+      <section className="py-24 glass-morphism relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-purple-600/5 to-pink-600/5 animate-gradient-xy"></div>
         <div className="container mx-auto px-4 relative">
           <h2 className="text-4xl font-bold mb-12 text-center text-gradient-fancy">Shop by Category</h2>
@@ -374,30 +363,30 @@ const Home = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20">
+      <section className="py-24">
         <div className="container mx-auto px-4">
-          <div className="glass-morphism rounded-3xl py-16 px-8 md:px-16 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/90 to-purple-600/90"></div>
-            <div className="relative">
+          <div className="relative rounded-3xl overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-95"></div>
+            <div className="relative py-16 px-8 md:px-16">
               <div className="max-w-4xl mx-auto text-center">
-                <h2 className="text-4xl font-bold mb-6 text-white neon-glow">
+                <h2 className="text-4xl font-bold mb-6 text-white">
                   Start Selling on Tes Market
                 </h2>
-                <p className="text-xl mb-10 text-white/90">
+                <p className="text-xl mb-10 text-white">
                   Join our community of successful vendors and start growing your business today.
                   We provide all the tools you need to reach customers worldwide.
                 </p>
                 <div className="flex flex-col md:flex-row gap-6 justify-center">
                   <Link
                     to="/login"
-                    className="btn-shiny glass-morphism px-8 py-4 text-lg font-semibold bg-white text-blue-600 rounded-full hover:bg-blue-50 transform hover:scale-105 transition-all duration-300"
+                    className="btn-fancy px-8 py-4 text-lg font-semibold text-blue-600 bg-white rounded-full hover:bg-gray-100 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
                   >
                     Register as Vendor
                     <ArrowRight className="inline-block ml-2 h-5 w-5" />
                   </Link>
                   <Link
                     to="/market"
-                    className="ripple-effect px-8 py-4 text-lg font-semibold border-2 border-white text-white rounded-full hover:bg-white/10 transform hover:scale-105 transition-all duration-300"
+                    className="btn-outline-fancy px-8 py-4 text-lg font-semibold text-white border-2 border-white rounded-full hover:bg-white/10 transform hover:scale-105 transition-all duration-300 shadow-md hover:shadow-lg"
                   >
                     Learn More
                     <BookOpen className="inline-block ml-2 h-5 w-5" />
@@ -410,7 +399,7 @@ const Home = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 bg-gradient-to-br from-gray-50 to-white">
+      <section className="py-24 bg-gradient-to-br from-gray-50 to-white">
         <div className="container mx-auto px-4">
           <h2 className="text-4xl font-bold mb-16 text-center text-gradient-fancy">
             What Our Users Say
@@ -449,7 +438,7 @@ const Home = () => {
       </section>
 
       {/* Why Choose Us Section */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-24 bg-gray-50">
         <div className="container mx-auto px-4">
           <h2 className="text-4xl font-bold mb-12 text-center gradient-text">Why Choose Tes Market</h2>
           <div className="grid md:grid-cols-3 gap-8">
@@ -485,74 +474,6 @@ const Home = () => {
           </div>
         </div>
       </section>
-
-      {/* Footer Section */}
-      <footer className="bg-gray-50 py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-lg font-bold mb-4">About Us</h3>
-              <p className="text-gray-600">
-                Tes Market is a platform that connects buyers and sellers from around the world.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-lg font-bold mb-4">Help & Support</h3>
-              <ul>
-                <li className="mb-2">
-                  <Link to="/help" className="text-gray-600 hover:text-blue-600">
-                    Help Center
-                  </Link>
-                </li>
-                <li className="mb-2">
-                  <Link to="/contact" className="text-gray-600 hover:text-blue-600">
-                    Contact Us
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-bold mb-4">Social Media</h3>
-              <ul>
-                <li className="mb-2">
-                  <Link to="#" className="text-gray-600 hover:text-blue-600">
-                    Facebook
-                  </Link>
-                </li>
-                <li className="mb-2">
-                  <Link to="#" className="text-gray-600 hover:text-blue-600">
-                    Twitter
-                  </Link>
-                </li>
-                <li className="mb-2">
-                  <Link to="#" className="text-gray-600 hover:text-blue-600">
-                    Instagram
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-bold mb-4">Newsletter</h3>
-              <p className="text-gray-600">
-                Stay up to date with the latest news and updates from Tes Market.
-              </p>
-              <form>
-                <input
-                  type="email"
-                  placeholder="Enter your email address"
-                  className="w-full py-2 pl-10 text-sm text-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent"
-                />
-                <button
-                  type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg"
-                >
-                  Subscribe
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import Navbar from './components/Navbar';
+import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './hooks/useAuth';
@@ -27,37 +27,34 @@ const App = () => {
   return (
     <AuthProvider>
       <CartProvider>
-        <div className="min-h-screen bg-gray-50">
-          <Navbar />
-          <main className="max-w-7xl mx-auto px-4 py-8">
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/products/:id" element={<ProductDetails />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/auth/login" element={<Login />} />
-              <Route path="/auth/register" element={<Register />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/faq" element={<FAQ />} />
+        <Layout>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Home />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/products/:id" element={<ProductDetails />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/auth/login" element={<Login />} />
+            <Route path="/auth/register" element={<Register />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/faq" element={<FAQ />} />
 
-              {/* Protected Routes */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/orders" element={<OrderHistory />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/vendor/dashboard" element={<VendorDashboard />} />
-                <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              </Route>
+            {/* Protected Routes */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/orders" element={<OrderHistory />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/vendor/dashboard" element={<VendorDashboard />} />
+              <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            </Route>
 
-              {/* 404 Route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </main>
-          <Toaster position="bottom-right" />
-        </div>
+            {/* 404 Route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Toaster position="top-right" />
+        </Layout>
       </CartProvider>
     </AuthProvider>
   );
