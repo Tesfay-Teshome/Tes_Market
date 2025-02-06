@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// Get the base URL from environment variables or use a default for development
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 const instance = axios.create({
-  baseURL: '/api',
+  baseURL,
   withCredentials: true, // Important for CSRF token
   headers: {
     'Content-Type': 'application/json',
@@ -36,7 +39,7 @@ instance.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle token expiration
+// Add response interceptor to handle token expiration and network errors
 instance.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -44,6 +47,9 @@ instance.interceptors.response.use(
       // Clear auth token on unauthorized
       localStorage.removeItem('authToken');
       window.location.href = '/auth/login';
+    } else if (!error.response) {
+      // Handle network errors
+      console.error('Network error:', error);
     }
     return Promise.reject(error);
   }

@@ -1,11 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+from django.conf import settings
+from django.conf.urls.static import static
 from . import views
 
 router = DefaultRouter()
-
-# Administrator routes
-router.register(r'administrator-dashboard', views.AdministratorDashboardViewSet, basename='administrator-dashboard')
 
 # User management
 router.register(r'users', views.UserViewSet, basename='user')
@@ -24,10 +23,26 @@ router.register(r'transactions', views.TransactionViewSet, basename='transaction
 router.register(r'reviews', views.ReviewViewSet, basename='review')
 router.register(r'wishlist', views.WishlistViewSet, basename='wishlist')
 
+# Vendor routes
+router.register(r'vendor/dashboard', views.VendorDashboardViewSet, basename='vendor-dashboard')
+router.register(r'vendor/products', views.VendorProductViewSet, basename='vendor-products')
+router.register(r'vendor/orders', views.VendorOrderViewSet, basename='vendor-orders')
+router.register(r'vendor/earnings', views.VendorEarningViewSet, basename='vendor-earnings')
+
+# Buyer routes
+router.register(r'buyer/orders', views.BuyerOrderViewSet, basename='buyer-orders')
+router.register(r'buyer/wishlist', views.BuyerWishlistViewSet, basename='buyer-wishlist')
+router.register(r'buyer/cart', views.BuyerCartViewSet, basename='buyer-cart')
+
 urlpatterns = [
     path('', include(router.urls)),
     
-    # Custom authentication endpoints
-    path('auth/vendor-register/', views.UserViewSet.as_view({'post': 'create'}), {'user_type': 'vendor'}, name='vendor-register'),
-    path('auth/buyer-register/', views.UserViewSet.as_view({'post': 'create'}), {'user_type': 'buyer'}, name='buyer-register'),
+    # Authentication endpoints
+    path('auth/register/', views.UserViewSet.as_view({'post': 'register'}), name='register'),
+    path('auth/login/', views.UserViewSet.as_view({'post': 'login'}), name='login'),
+    path('auth/user/', views.UserViewSet.as_view({'get': 'me', 'patch': 'update_profile'}), name='user-profile'),
 ]
+
+# Add media URL patterns for development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

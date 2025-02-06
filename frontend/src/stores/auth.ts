@@ -31,7 +31,7 @@ const useAuth = create<AuthState>()(
       },
       register: async (data) => {
         try {
-          const response = await api.post('/auth/register/', data);
+          const response = await api.post('/api/auth/registration/', data);
           const { user, token } = response.data;
           set({ user, token, isAuthenticated: true });
           localStorage.setItem('token', token);

@@ -8,6 +8,7 @@ class User(AbstractUser):
     USER_TYPE_CHOICES = (
         ('vendor', 'Vendor'),
         ('buyer', 'Buyer'),
+        ('administrator', 'Administrator'),
     )
     
     user_type = models.CharField(max_length=15, choices=USER_TYPE_CHOICES, default='buyer')
@@ -21,7 +22,7 @@ class User(AbstractUser):
     commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=10.00)  # Platform commission rate
 
     def __str__(self):
-        return self.username
+        return self.email
 
     @property
     def is_vendor(self):
@@ -32,8 +33,15 @@ class User(AbstractUser):
         return self.user_type == 'buyer'
 
     @property
-    def is_admin(self):
+    def is_administrator(self):
         return self.user_type == 'administrator'
+
+    def save(self, *args, **kwargs):
+        # Ensure administrators are staff and superusers
+        if self.user_type == 'administrator':
+            self.is_staff = True
+            self.is_superuser = True
+        super().save(*args, **kwargs)
 
 class Category(MPTTModel):
     name = models.CharField(max_length=100)

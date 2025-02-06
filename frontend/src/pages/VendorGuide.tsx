@@ -46,8 +46,8 @@ const VendorGuide = () => {
           Join our marketplace and start selling your products to customers worldwide.
         </p>
         <Link
-          to="/register"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+          to="/auth/register"
+          className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
         >
           Register as Vendor
         </Link>

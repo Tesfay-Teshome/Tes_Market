@@ -456,6 +456,94 @@
   ::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(45deg, #2563eb, #3b82f6);
   }
+
+  /* Custom Animation Classes */
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 1s ease-out forwards;
+  }
+
+  .animate-fade-in-delay {
+    animation: fade-in-delay 1.5s ease-out forwards;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Custom Styles for Auth Forms */
+  .auth-input {
+    @apply appearance-none block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 
+      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
+      text-gray-900 transition-all duration-300;
+  }
+
+  .auth-input:hover {
+    @apply border-blue-300 shadow-md;
+  }
+
+  .auth-label {
+    @apply block text-sm font-semibold text-gray-700 mb-1;
+  }
+
+  .auth-button {
+    @apply w-full flex justify-center py-3 px-4 border border-transparent rounded-lg 
+      text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 
+      hover:from-blue-700 hover:to-indigo-700 
+      focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
+      transform transition-all duration-300 hover:scale-[1.02] shadow-lg hover:shadow-xl;
+  }
+
+  .social-auth-button {
+    @apply flex items-center justify-center px-4 py-2.5 border border-gray-300 rounded-lg 
+      shadow-sm bg-white text-sm font-medium text-gray-700 
+      hover:bg-gray-50 hover:border-gray-400 hover:shadow-md
+      focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 
+      transform transition-all duration-300;
+  }
+
+  .auth-container {
+    @apply backdrop-blur-lg bg-white/95 rounded-2xl shadow-2xl p-8 
+      transform transition-all duration-300 hover:shadow-3xl
+      border border-gray-100;
+  }
+
+  .glass-effect {
+    @apply backdrop-filter backdrop-blur-lg bg-opacity-10 bg-white;
+  }
+
+  /* Custom Utilities */
+  .text-shadow {
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .text-shadow-lg {
+    text-shadow: 4px 4px 8px rgba(0,0,0,0.1);
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 
+      drop-shadow-sm;
+  }
+
+  .shadow-3xl {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
 }
 
 @keyframes gradient-x {
@@ -485,7 +573,7 @@
 @keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -840,5 +928,68 @@ input:-webkit-autofill:focus {
   .link-underline:hover::after {
     transform: scaleX(1);
     transform-origin: left;
+  }
+}
+
+/* Custom Animations */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-delay {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  50% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.3;
   }
 }

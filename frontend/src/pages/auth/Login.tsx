@@ -1,25 +1,27 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../contexts/AuthProvider';
 import { FcGoogle } from 'react-icons/fc';
 import { FaFacebook } from 'react-icons/fa';
 
-interface LoginFormData {
-  email: string;
-  password: string;
-}
-
-const Login: React.FC = () => {
-  const [error, setError] = useState<string>('');
+export default function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
 
-  const onSubmit = async (data: LoginFormData) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
     try {
-      await login(data.email, data.password);
+      await login(email, password);
     } catch (err: any) {
-      setError(err.message || 'Failed to login. Please try again.');
+      setError(err.message || 'An error occurred during login');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -32,143 +34,125 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 animate-gradient-x">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <img
-            src="/logo.png"
-            alt="Logo"
-            className="h-12 w-auto animate-float"
-          />
-        </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 animate-fade-in">
-          Welcome Back
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Don't have an account?{' '}
-          <Link to="/auth/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200 hover:underline">
-            Create a new account
-          </Link>
-        </p>
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -left-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
+        <div className="absolute top-0 -right-20 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+        <div className="absolute -bottom-40 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow-2xl shadow-blue-100/50 sm:rounded-xl sm:px-10 transform transition-all duration-300 hover:scale-[1.01]">
+      <div className="relative w-full max-w-md px-6 animate-fade-in">
+        <div className="auth-container bg-white/90">
+          <div className="text-center mb-8">
+            <h2 className="text-4xl font-bold text-gradient mb-3 text-shadow-lg">Welcome Back</h2>
+            <p className="text-lg text-gray-600 font-medium">Sign in to your account</p>
+          </div>
+
           {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg animate-shake">
-              {error}
+            <div className="mb-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-lg animate-fade-in">
+              <p className="font-medium">{error}</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in-delay">
+            <div className="space-y-2">
+              <label htmlFor="email" className="auth-label">
                 Email address
               </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  {...register('email', {
-                    required: 'Email is required',
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: 'Invalid email address',
-                    },
-                  })}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors duration-200"
-                  placeholder="john@example.com"
-                />
-              </div>
-              {errors.email && (
-                <p className="mt-2 text-sm text-red-600">{errors.email.message}</p>
-              )}
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="auth-input"
+                placeholder="Enter your email"
+              />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <div className="space-y-2">
+              <label htmlFor="password" className="auth-label">
                 Password
               </label>
-              <div className="mt-1 relative rounded-md shadow-sm">
-                <input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  {...register('password', { required: 'Password is required' })}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors duration-200"
-                  placeholder="••••••••"
-                />
-              </div>
-              {errors.password && (
-                <p className="mt-2 text-sm text-red-600">{errors.password.message}</p>
-              )}
+              <input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="auth-input"
+                placeholder="Enter your password"
+              />
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between text-sm mt-6">
               <div className="flex items-center">
                 <input
                   id="remember-me"
-                  name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-colors duration-200"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                <label htmlFor="remember-me" className="ml-2 text-gray-700 font-medium">
                   Remember me
                 </label>
               </div>
+              <Link
+                to="/auth/forgot-password"
+                className="text-blue-600 hover:text-blue-800 transition-colors font-medium"
+              >
+                Forgot password?
+              </Link>
+            </div>
 
-              <div className="text-sm">
-                <Link to="/auth/forgot-password" className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200 hover:underline">
-                  Forgot your password?
-                </Link>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="auth-button mt-8"
+            >
+              {isLoading ? 'Signing in...' : 'Sign in'}
+            </button>
+
+            <div className="relative my-8">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 py-1 bg-white text-gray-500 font-medium rounded-full border border-gray-200">Or continue with</span>
               </div>
             </div>
 
-            <div>
+            <div className="grid grid-cols-2 gap-4">
               <button
-                type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-[1.02]"
+                type="button"
+                onClick={handleGoogleLogin}
+                className="social-auth-button"
               >
-                Sign in
+                <FcGoogle className="text-xl mr-2" />
+                Google
+              </button>
+              <button
+                type="button"
+                onClick={handleFacebookLogin}
+                className="social-auth-button"
+              >
+                <FaFacebook className="text-xl mr-2 text-blue-600" />
+                Facebook
               </button>
             </div>
           </form>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with</span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <button
-                onClick={handleGoogleLogin}
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-[1.02]"
-              >
-                <FcGoogle className="h-5 w-5" />
-                <span className="ml-2">Google</span>
-              </button>
-
-              <button
-                onClick={handleFacebookLogin}
-                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-[1.02]"
-              >
-                <FaFacebook className="h-5 w-5 text-blue-600" />
-                <span className="ml-2">Facebook</span>
-              </button>
-            </div>
-          </div>
+          <p className="mt-10 text-center text-gray-600">
+            Don't have an account?{' '}
+            <Link
+              to="/auth/register"
+              className="font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              Sign up
+            </Link>
+          </p>
         </div>
       </div>
     </div>
   );
-};
-
-export default Login;
+}

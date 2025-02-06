@@ -45,8 +45,9 @@ interface Stats {
 const fetchFeaturedProducts = async (): Promise<Product[]> => {
   try {
     const response = await axios.get('/api/products/featured/');
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
+    console.error('Failed to fetch featured products:', error);
     toast.error('Failed to load featured products');
     return [];
   }
@@ -55,8 +56,9 @@ const fetchFeaturedProducts = async (): Promise<Product[]> => {
 const fetchCategories = async (): Promise<Category[]> => {
   try {
     const response = await axios.get('/api/categories/');
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
+    console.error('Failed to fetch categories:', error);
     toast.error('Failed to load categories');
     return [];
   }
@@ -67,6 +69,7 @@ const fetchStats = async (): Promise<Stats> => {
     const response = await axios.get('/api/stats/');
     return response.data;
   } catch (error) {
+    console.error('Failed to fetch stats:', error);
     toast.error('Failed to load stats');
     return {
       customers: 0,
@@ -99,39 +102,104 @@ const testimonials: Testimonial[] = [
 
 const Home = () => {
   const { 
-    data: featuredProducts,
-    isLoading: productsLoading,
-    error: productsError
+    data: featuredProducts = [],
+    isLoading: productsLoading
   } = useQuery({
     queryKey: ['featuredProducts'],
     queryFn: fetchFeaturedProducts,
+    retry: 1
   });
 
   const {
-    data: categories,
-    isLoading: categoriesLoading,
-    error: categoriesError
+    data: categories = [],
+    isLoading: categoriesLoading
   } = useQuery({
     queryKey: ['categories'],
     queryFn: fetchCategories,
+    retry: 1
   });
 
   const {
-    data: stats,
-    isLoading: statsLoading,
+    data: stats = {
+      customers: 0,
+      vendors: 0,
+      products: 0,
+      transactions: 0
+    },
+    isLoading: statsLoading
   } = useQuery({
     queryKey: ['stats'],
     queryFn: fetchStats,
+    retry: 1
   });
 
-  if (productsError || categoriesError) {
-    toast.error('Something went wrong. Please try again later.');
+  // Show loading state
+  if (productsLoading && categoriesLoading && statsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
+
+  const renderFeaturedProducts = () => {
+    if (!Array.isArray(featuredProducts) || featuredProducts.length === 0) {
+      return (
+        <div className="text-center py-10">
+          <p className="text-gray-500">No featured products available</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {featuredProducts.map((product) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </div>
+    );
+  };
+
+  const renderCategories = () => {
+    if (!Array.isArray(categories) || categories.length === 0) {
+      return (
+        <div className="text-center py-10">
+          <p className="text-gray-500">No categories available</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+        {categories.map((category) => (
+          <Link
+            key={category.id}
+            to={`/products?category=${category.id}`}
+            className="group relative overflow-hidden rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300"
+          >
+            <div className="aspect-w-16 aspect-h-9">
+              <img
+                src={category.image}
+                alt={category.name}
+                className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-300"
+              />
+            </div>
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
+              <div className="absolute bottom-0 left-0 right-0 p-4">
+                <h3 className="text-white font-semibold text-lg">{category.name}</h3>
+                <p className="text-white/80 text-sm">{category.productCount} Products</p>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen">
       {/* Hero Section with Enhanced Animation */}
-      <section className="relative min-h-screen py-40 mt-24 overflow-hidden">
+      <section className="relative min-h-[calc(100vh-4rem)] py-40 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20 animate-gradient-xy"></div>
         <div className="container mx-auto px-4 relative">
           <div className="max-w-4xl mx-auto text-center">
@@ -150,7 +218,7 @@ const Home = () => {
                 <ArrowRight className="inline-block ml-2 h-5 w-5" />
               </Link>
               <Link
-                to="/login"
+                to="/auth/login"
                 className="btn-outline-fancy px-8 py-4 text-lg font-semibold text-blue-600 border-2 border-blue-600 rounded-full hover:bg-blue-50 transform hover:scale-105 transition-all duration-300 shadow-md hover:shadow-lg"
               >
                 Become a Vendor
@@ -241,7 +309,7 @@ const Home = () => {
                       <div className="text-blue-600 h-12 w-12">{stat.icon}</div>
                     </div>
                     <div className="text-4xl font-bold text-gray-900 mb-2 text-gradient-fancy">
-                      {stat.value.toLocaleString()}+
+                      {(stat.value || 0).toLocaleString()}+
                     </div>
                     <div className="text-gray-600 font-medium">{stat.label}</div>
                   </div>
@@ -264,46 +332,7 @@ const Home = () => {
               View All <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {productsLoading ? (
-              Array(4).fill(null).map((_, i) => (
-                <div
-                  key={i}
-                  className="animate-pulse bg-white rounded-xl overflow-hidden shadow-sm"
-                >
-                  <div className="h-48 bg-gray-200"></div>
-                  <div className="p-6">
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                  </div>
-                </div>
-              ))
-            ) : featuredProducts && featuredProducts.length > 0 ? (
-              featuredProducts.map((product, index) => (
-                <div
-                  key={product.id}
-                  className="card-hover-fancy"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <ProductCard
-                    id={product.id}
-                    title={product.title}
-                    price={product.price}
-                    imageUrl={product.images[0]}
-                    description={product.description}
-                    vendor={product.vendorId}
-                  />
-                </div>
-              ))
-            ) : (
-              <div className="col-span-4 text-center py-16">
-                <Package className="h-16 w-16 text-gray-400 mx-auto mb-6" />
-                <h3 className="text-xl font-medium text-gray-900 mb-2">No Products Found</h3>
-                <p className="text-gray-500">Check back later for featured products.</p>
-              </div>
-            )}
-          </div>
+          {renderFeaturedProducts()}
         </div>
       </section>
 
@@ -312,53 +341,7 @@ const Home = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-purple-600/5 to-pink-600/5 animate-gradient-xy"></div>
         <div className="container mx-auto px-4 relative">
           <h2 className="text-4xl font-bold mb-12 text-center text-gradient-fancy">Shop by Category</h2>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {categoriesLoading ? (
-              Array(4).fill(null).map((_, i) => (
-                <div
-                  key={i}
-                  className="animate-pulse bg-white rounded-xl overflow-hidden shadow-sm"
-                >
-                  <div className="h-40 bg-gray-200"></div>
-                  <div className="p-4">
-                    <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
-                  </div>
-                </div>
-              ))
-            ) : categories && categories.length > 0 ? (
-              categories.map((category, index) => (
-                <Link
-                  key={category.id}
-                  to={`/products?category=${category.id}`}
-                  className="group card-hover-fancy"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <div className="relative rounded-xl overflow-hidden">
-                    <div className="aspect-w-16 aspect-h-9">
-                      <img
-                        src={category.image}
-                        alt={category.name}
-                        className="w-full h-40 object-cover transform transition-transform duration-500 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex items-end p-6">
-                        <div>
-                          <h3 className="text-white font-semibold text-xl mb-1">{category.name}</h3>
-                          <p className="text-white/90 text-sm">{category.productCount} Products</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="col-span-4 text-center py-16">
-                <Package className="h-16 w-16 text-gray-400 mx-auto mb-6" />
-                <h3 className="text-xl font-medium text-gray-900 mb-2">No Categories Found</h3>
-                <p className="text-gray-500">Check back later for product categories.</p>
-              </div>
-            )}
-          </div>
+          {renderCategories()}
         </div>
       </section>
 
@@ -378,7 +361,7 @@ const Home = () => {
                 </p>
                 <div className="flex flex-col md:flex-row gap-6 justify-center">
                   <Link
-                    to="/login"
+                    to="/auth/login"
                     className="btn-fancy px-8 py-4 text-lg font-semibold text-blue-600 bg-white rounded-full hover:bg-gray-100 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
                   >
                     Register as Vendor

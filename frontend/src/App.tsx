@@ -1,9 +1,9 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import Layout from './components/Layout';
-import ProtectedRoute from './components/ProtectedRoute';
+import Navbar from './components/Navbar';
+import Footer from './components/Footer';
+import { useAuth } from './contexts/AuthProvider';
 import { CartProvider } from './context/CartContext';
-import { AuthProvider } from './hooks/useAuth';
 
 // Import all pages
 import Home from './pages/Home';
@@ -23,11 +23,28 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import FAQ from './pages/FAQ';
 
-const App = () => {
+// Protected Route Component
+const ProtectedRouteWrapper = ({ children, vendorOnly = false }: { children: React.ReactNode; vendorOnly?: boolean }) => {
+  const { user, isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth/login" />;
+  }
+
+  if (vendorOnly && user?.role !== 'vendor') {
+    return <Navigate to="/" />;
+  }
+
+  return <>{children}</>;
+}
+
+function App() {
   return (
-    <AuthProvider>
-      <CartProvider>
-        <Layout>
+    <CartProvider>
+      <div className="flex flex-col min-h-screen bg-gray-50">
+        <Navbar />
+        <main className="flex-grow pt-16">
+          <Toaster position="top-center" reverseOrder={false} />
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Home />} />
@@ -41,7 +58,7 @@ const App = () => {
             <Route path="/faq" element={<FAQ />} />
 
             {/* Protected Routes */}
-            <Route element={<ProtectedRoute />}>
+            <Route element={<ProtectedRouteWrapper><Outlet /></ProtectedRouteWrapper>}>
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/orders" element={<OrderHistory />} />
               <Route path="/profile" element={<Profile />} />
@@ -53,11 +70,11 @@ const App = () => {
             {/* 404 Route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <Toaster position="top-right" />
-        </Layout>
-      </CartProvider>
-    </AuthProvider>
+        </main>
+        <Footer />
+      </div>
+    </CartProvider>
   );
-};
+}
 
 export default App;

@@ -21,6 +21,8 @@ from .serializers import (
     ReviewSerializer, WishlistSerializer, AdministratorDashboardMetricsSerializer,
     TestimonialSerializer
 )
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
 
 User = get_user_model()
 
@@ -147,69 +149,82 @@ class AdministratorDashboardViewSet(viewsets.ViewSet):
             )
 
 class VendorDashboardViewSet(viewsets.ViewSet):
-    permission_classes = [IsAuthenticated, IsVendorOrReadOnly]
+    permission_classes = [IsAuthenticated]
 
-    @action(detail=False, methods=['get'])
-    def metrics(self, request):
-        today = timezone.now().date()
-        analytics, _ = VendorAnalytics.objects.get_or_create(
+    def list(self, request):
+        if not request.user.is_vendor:
+            return Response(
+                {'detail': 'Only vendors can access this dashboard'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get vendor statistics
+        products_count = Product.objects.filter(vendor=request.user).count()
+        orders_count = Order.objects.filter(items__product__vendor=request.user).distinct().count()
+        total_earnings = Transaction.objects.filter(
             vendor=request.user,
-            date=today
-        )
-        
-        # Update analytics
-        today_orders = OrderItem.objects.filter(
-            product__vendor=request.user,
-            order__created_at__date=today
-        )
-        
-        analytics.total_orders = today_orders.count()
-        analytics.total_products_sold = today_orders.aggregate(
-            Sum('quantity')
-        )['quantity__sum'] or 0
-        analytics.total_sales = today_orders.aggregate(
-            Sum('price')
-        )['price__sum'] or 0
-        analytics.total_earnings = today_orders.aggregate(
-            Sum('vendor_earning')
-        )['vendor_earning__sum'] or 0
-        analytics.platform_fees = today_orders.aggregate(
-            Sum('platform_fee')
-        )['platform_fee__sum'] or 0
-        
-        analytics.save()
-        
+            status='completed'
+        ).aggregate(total=Sum('amount'))['total'] or 0
+
         return Response({
-            'total_orders': analytics.total_orders,
-            'total_products_sold': analytics.total_products_sold,
-            'total_sales': analytics.total_sales,
-            'total_earnings': analytics.total_earnings,
-            'platform_fees': analytics.platform_fees
+            'products_count': products_count,
+            'orders_count': orders_count,
+            'total_earnings': total_earnings,
+            'is_verified': request.user.is_verified
         })
 
-    @action(detail=False, methods=['get'])
-    def products(self, request):
-        products = Product.objects.filter(vendor=request.user)
-        return Response(ProductSerializer(products, many=True).data)
+class VendorProductViewSet(viewsets.ModelViewSet):
+    serializer_class = ProductSerializer
+    permission_classes = [IsAuthenticated]
 
-    @action(detail=False, methods=['get'])
-    def orders(self, request):
-        orders = Order.objects.filter(
-            items__product__vendor=request.user
+    def get_queryset(self):
+        return Product.objects.filter(vendor=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(vendor=self.request.user)
+
+class VendorOrderViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Order.objects.filter(
+            items__product__vendor=self.request.user
         ).distinct()
-        return Response(OrderSerializer(orders, many=True).data)
 
-    @action(detail=False, methods=['get'])
-    def earnings(self, request):
-        earnings = VendorEarning.objects.filter(vendor=request.user)
-        return Response({
-            'total_earnings': earnings.filter(status='paid').aggregate(
-                Sum('amount')
-            )['amount__sum'] or 0,
-            'pending_earnings': earnings.filter(status='pending').aggregate(
-                Sum('amount')
-            )['amount__sum'] or 0
-        })
+class VendorEarningViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Transaction.objects.filter(vendor=self.request.user)
+
+class BuyerOrderViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = OrderSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Order.objects.filter(buyer=self.request.user)
+
+class BuyerWishlistViewSet(viewsets.ModelViewSet):
+    serializer_class = WishlistSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Wishlist.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class BuyerCartViewSet(viewsets.ModelViewSet):
+    serializer_class = CartSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Cart.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 class TestimonialViewSet(viewsets.ModelViewSet):
     queryset = Testimonial.objects.filter(is_active=True)
@@ -399,16 +414,95 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return UserSerializer
-        return UserSerializer
-    
+
     def get_permissions(self):
-        if self.action == 'create':
+        if self.action in ['register', 'login']:
             return [permissions.AllowAny()]
-        return [permissions.IsAuthenticated()]
+        return [permission() for permission in self.permission_classes]
+
+    @action(detail=False, methods=['post'])
+    def register(self, request):
+        # Don't allow registration as administrator
+        if request.data.get('user_type') == 'administrator':
+            return Response(
+                {'detail': 'Administrator accounts can only be created through the admin panel'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            
+            # Handle profile image
+            if 'profile_image' in request.FILES:
+                user.profile_image = request.FILES['profile_image']
+                user.save()
+
+            # If registering as a vendor, set to unverified by default
+            if user.user_type == 'vendor':
+                user.is_verified = False
+                user.save()
+
+            # Generate token
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                'user': UserSerializer(user).data,
+                'access_token': str(refresh.access_token),
+                'refresh_token': str(refresh),
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['post'])
+    def login(self, request):
+        email = request.data.get('email')
+        password = request.data.get('password')
+        
+        user = authenticate(username=email, password=password)
+        if user:
+            # Check if vendor is verified
+            if user.user_type == 'vendor' and not user.is_verified:
+                return Response(
+                    {'detail': 'Your vendor account is pending verification'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'user': UserSerializer(user).data,
+                'access_token': str(refresh.access_token),
+                'refresh_token': str(refresh),
+            })
+        return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    @action(detail=False, methods=['get'])
+    def me(self, request):
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['patch'])
+    def update_profile(self, request):
+        user = request.user
+        
+        # Don't allow changing user_type through profile update
+        if 'user_type' in request.data:
+            return Response(
+                {'detail': 'User type cannot be changed'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = self.get_serializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            # Handle profile image update
+            if 'profile_image' in request.FILES:
+                # Delete old image if exists
+                if user.profile_image:
+                    user.profile_image.delete(save=False)
+                user.profile_image = request.FILES['profile_image']
+            
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()

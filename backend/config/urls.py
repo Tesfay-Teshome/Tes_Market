@@ -51,9 +51,16 @@ urlpatterns = [
     # API Documentation
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 # Serve media files in development
 if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    pass
+
+# Add catch-all pattern for frontend routes
+urlpatterns += [
+    # This should be the last pattern in your urlpatterns
+    path('<path:path>', TemplateView.as_view(template_name='index.html')),
+    # Also handle the case when no path is given
+    path('', TemplateView.as_view(template_name='index.html')),
+]
