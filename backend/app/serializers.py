@@ -12,24 +12,58 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
+    full_name = serializers.CharField(write_only=True, required=True)  # Accept snake_case
+    phone_number = serializers.CharField(source='phone', required=False, allow_blank=True)  # Accept snake_case
+    user_type = serializers.CharField(required=True)  # Accept snake_case
+    store_name = serializers.CharField(required=False, allow_blank=True)  # Accept snake_case
+    store_description = serializers.CharField(required=False, allow_blank=True)  # Accept snake_case
 
     class Meta:
         model = User
         fields = (
-            'id', 'username', 'email', 'password', 'confirm_password',
-            'first_name', 'last_name', 'user_type', 'phone', 'address',
-            'profile_image', 'store_name', 'store_description',
-            'bank_account', 'is_verified', 'date_joined'
+            'id', 'email', 'password', 'confirm_password', 'full_name',
+            'phone_number', 'address', 'user_type', 'store_name',
+            'store_description', 'profile_image', 'is_verified',
+            'date_joined'
         )
         read_only_fields = ('is_verified', 'date_joined')
 
     def validate(self, data):
         if data.get('password') != data.get('confirm_password'):
             raise serializers.ValidationError("Passwords don't match")
+        
+        # Validate user_type
+        user_type = data.get('user_type')
+        if user_type not in ['buyer', 'vendor']:
+            raise serializers.ValidationError("User type must be either 'buyer' or 'vendor'")
+
+        # If user is vendor, validate required vendor fields
+        if user_type == 'vendor' and not data.get('store_name'):
+            raise serializers.ValidationError("Store name is required for vendors")
+
         return data
 
     def create(self, validated_data):
+        # Handle the full name
+        full_name = validated_data.pop('full_name', '')
+        name_parts = full_name.split(' ', 1)
+        first_name = name_parts[0]
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+
+        # Remove confirm_password
         validated_data.pop('confirm_password')
+
+        # Create username from email
+        validated_data['username'] = validated_data.get('email')
+
+        # Set first and last name
+        validated_data['first_name'] = first_name
+        validated_data['last_name'] = last_name
+
+        # Convert user_type 'seller' to 'vendor'
+        if validated_data.get('user_type') == 'seller':
+            validated_data['user_type'] = 'vendor'
+
         user = User.objects.create_user(**validated_data)
         return user
 

@@ -277,45 +277,49 @@ const Home = () => {
       </section>
 
       {/* Stats Section with Enhanced Animation */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-white"></div>
-        <div className="container mx-auto px-4 relative">
-          <h2 className="text-4xl font-bold text-center mb-16 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600">
-            Our Growing Community
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {statsLoading ? (
-              Array(4).fill(null).map((_, i) => (
-                <div key={i} className="text-center animate-pulse">
-                  <div className="h-20 w-20 mx-auto bg-gray-200 rounded-full mb-4"></div>
-                  <div className="h-6 bg-gray-200 rounded w-32 mx-auto mb-2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-24 mx-auto"></div>
-                </div>
-              ))
-            ) : stats ? (
-              <>
-                {[
-                  { icon: <Users />, label: 'Happy Customers', value: stats.customers },
-                  { icon: <Package />, label: 'Products Listed', value: stats.products },
-                  { icon: <Users />, label: 'Active Vendors', value: stats.vendors },
-                  { icon: <DollarSign />, label: 'Transactions', value: stats.transactions }
-                ].map((stat, index) => (
-                  <div
-                    key={index}
-                    className="text-center hover-lift"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <div className="bg-white/30 backdrop-blur-lg rounded-full p-6 w-24 h-24 mx-auto mb-6 floating">
-                      <div className="text-blue-600 h-12 w-12">{stat.icon}</div>
-                    </div>
-                    <div className="text-4xl font-bold text-gray-900 mb-2 text-gradient-fancy">
-                      {(stat.value || 0).toLocaleString()}+
-                    </div>
-                    <div className="text-gray-600 font-medium">{stat.label}</div>
-                  </div>
-                ))}
-              </>
-            ) : null}
+      <section className="py-24 bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold mb-16 text-center text-gradient-fancy">Our Growing Community</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="text-center transform hover:scale-105 transition-transform duration-300">
+              <div className="bg-gradient-to-br from-blue-500 to-blue-600 w-16 h-16 mx-auto rounded-2xl shadow-lg flex items-center justify-center mb-4 transform rotate-3">
+                <Users className="h-8 w-8 text-white" strokeWidth={1.5} />
+              </div>
+              <div className="text-4xl font-bold text-gray-900 mb-2 text-gradient-fancy">
+                {(stats?.customers || 0).toLocaleString()}+
+              </div>
+              <div className="text-gray-600 font-medium">Happy Customers</div>
+            </div>
+
+            <div className="text-center transform hover:scale-105 transition-transform duration-300">
+              <div className="bg-gradient-to-br from-purple-500 to-purple-600 w-16 h-16 mx-auto rounded-2xl shadow-lg flex items-center justify-center mb-4 transform -rotate-3">
+                <ShoppingBag className="h-8 w-8 text-white" strokeWidth={1.5} />
+              </div>
+              <div className="text-4xl font-bold text-gray-900 mb-2 text-gradient-fancy">
+                {(stats?.vendors || 0).toLocaleString()}+
+              </div>
+              <div className="text-gray-600 font-medium">Trusted Vendors</div>
+            </div>
+
+            <div className="text-center transform hover:scale-105 transition-transform duration-300">
+              <div className="bg-gradient-to-br from-pink-500 to-pink-600 w-16 h-16 mx-auto rounded-2xl shadow-lg flex items-center justify-center mb-4 transform rotate-3">
+                <Package className="h-8 w-8 text-white" strokeWidth={1.5} />
+              </div>
+              <div className="text-4xl font-bold text-gray-900 mb-2 text-gradient-fancy">
+                {(stats?.products || 0).toLocaleString()}+
+              </div>
+              <div className="text-gray-600 font-medium">Quality Products</div>
+            </div>
+
+            <div className="text-center transform hover:scale-105 transition-transform duration-300">
+              <div className="bg-gradient-to-br from-green-500 to-green-600 w-16 h-16 mx-auto rounded-2xl shadow-lg flex items-center justify-center mb-4 transform -rotate-3">
+                <DollarSign className="h-8 w-8 text-white" strokeWidth={1.5} />
+              </div>
+              <div className="text-4xl font-bold text-gray-900 mb-2 text-gradient-fancy">
+                {(stats?.transactions || 0).toLocaleString()}+
+              </div>
+              <div className="text-gray-600 font-medium">Successful Sales</div>
+            </div>
           </div>
         </div>
       </section>

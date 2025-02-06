@@ -15,6 +15,7 @@ import OrderHistory from './pages/OrderHistory';
 import Profile from './pages/Profile';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import PendingVerification from './pages/auth/PendingVerification';
 import VendorDashboard from './pages/VendorDashboard';
 import BuyerDashboard from './pages/BuyerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
@@ -56,6 +57,7 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/faq" element={<FAQ />} />
+            <Route path="/vendor/pending-verification" element={<PendingVerification />} />
 
             {/* Protected Routes */}
             <Route element={<ProtectedRouteWrapper><Outlet /></ProtectedRouteWrapper>}>

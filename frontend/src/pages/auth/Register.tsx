@@ -65,8 +65,8 @@ const Register: React.FC = () => {
       // Create FormData to handle file upload
       const formData = new FormData();
       formData.append('email', data.email);
-      formData.append('username', data.email); // Use email as username
       formData.append('password', data.password);
+      formData.append('confirm_password', data.confirmPassword);
       formData.append('full_name', data.fullName);
       formData.append('user_type', data.userType === 'seller' ? 'vendor' : 'buyer');
       if (data.phoneNumber) formData.append('phone_number', data.phoneNumber);
@@ -89,7 +89,7 @@ const Register: React.FC = () => {
         formData.append('profile_image', data.profileImage[0]);
       }
 
-      const response = await axios.post('/api/auth/register/', formData, {
+      const response = await axios.post('/auth/register/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -103,11 +103,11 @@ const Register: React.FC = () => {
           if (!response.data.user.is_verified) {
             navigate('/vendor/pending-verification');
           } else {
-            navigate('/vendor/dashboard');
+            navigate(getDashboardPath(data.userType));
           }
         } else {
           // Buyers go to home page
-          navigate('/');
+          navigate(getDashboardPath(data.userType));
         }
       } else {
         throw new Error('Registration failed: No access token received');

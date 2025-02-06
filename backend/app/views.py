@@ -178,6 +178,8 @@ class VendorProductViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):  # handle schema generation
+            return Product.objects.none()
         return Product.objects.filter(vendor=self.request.user)
 
     def perform_create(self, serializer):
@@ -211,6 +213,8 @@ class BuyerWishlistViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):  # handle schema generation
+            return Wishlist.objects.none()
         return Wishlist.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
@@ -221,6 +225,8 @@ class BuyerCartViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):  # handle schema generation
+            return Cart.objects.none()
         return Cart.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
@@ -280,12 +286,15 @@ class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):  # handle schema generation
+            return Order.objects.none()
         user = self.request.user
         if user.is_administrator:
             return Order.objects.all()
         elif user.is_vendor:
             return Order.objects.filter(items__product__vendor=user).distinct()
-        return Order.objects.filter(user=user)
+        else:
+            return Order.objects.filter(user=user)
 
     @action(detail=True, methods=['post'])
     def update_status(self, request, pk=None):
@@ -314,13 +323,11 @@ class TransactionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):  # handle schema generation
+            return Transaction.objects.none()
         user = self.request.user
         if user.is_administrator:
             return Transaction.objects.all()
-        elif user.is_vendor:
-            return Transaction.objects.filter(
-                order__items__product__vendor=user
-            ).distinct()
         return Transaction.objects.filter(order__user=user)
 
     @action(detail=True, methods=['post'])
@@ -351,6 +358,8 @@ class CartViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):  # handle schema generation
+            return Cart.objects.none()
         return Cart.objects.filter(user=self.request.user)
 
     @action(detail=True, methods=['post'])
@@ -390,6 +399,8 @@ class WishlistViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):  # handle schema generation
+            return Wishlist.objects.none()
         return Wishlist.objects.filter(user=self.request.user)
 
     @action(detail=True, methods=['post'])
