@@ -28,7 +28,7 @@ export function useAuth() {
 
 export async function login(email: string, password: string): Promise<User> {
   try {
-    const response = await axios.post('/api/auth/login/', {
+    const response = await axios.post('/auth/login/', {
       email,
       password,
     });

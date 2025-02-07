@@ -9,6 +9,7 @@ export interface Product {
   stock: number;
   createdAt: string;
   updatedAt: string;
+  imageUrl: string;
 }
 
 export interface Category {
@@ -34,4 +35,12 @@ export interface CartItem {
   price: number;
   title: string;
   image: string;
+}
+export interface Transaction {
+  id: string;
+  userId: string;
+  productId: string;
+  quantity: number;
+  totalAmount: number;
+  createdAt: string;
 }

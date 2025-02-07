@@ -66,7 +66,27 @@ class UserSerializer(serializers.ModelSerializer):
 
         user = User.objects.create_user(**validated_data)
         return user
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField(required=True)  # Changed from username to email
+    password = serializers.CharField(required=True)
 
+    def validate(self, data):
+        username = data.get(settings.USERNAME_FIELD)
+        password = data.get('password')
+
+        if username and password:
+            user = authenticate(request=self.context.get('request'),
+                                username=username, password=password)
+            if not user:
+                msg = 'Unable to log in with provided credentials.'
+                raise serializers.ValidationError(msg, code='authorization')
+        else:
+            msg = 'Must include "username" and "password".'
+            raise serializers.ValidationError(msg, code='authorization')
+
+        data['user'] = user
+        return data
+    
 class CategorySerializer(serializers.ModelSerializer):
     children = serializers.SerializerMethodField()
 

@@ -1,5 +1,7 @@
+# backend/app/views.py
 from django.shortcuts import render
 from rest_framework import viewsets, status, permissions, filters
+from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
@@ -23,9 +25,64 @@ from .serializers import (
 )
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
+from rest_framework import generics
+from rest_framework.serializers import Serializer
+from django.conf import settings
 
 User = get_user_model()
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [permissions.AllowAny]
 
+    def perform_create(self, serializer):
+        # Don't allow registration as administrator
+        if self.request.data.get('user_type') == 'administrator':
+            return Response(
+                {'detail': 'Administrator accounts can only be created through the admin panel'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = serializer.save()
+
+        # Handle profile image
+        if 'profile_image' in self.request.FILES:
+            user.profile_image = self.request.FILES['profile_image']
+            user.save()
+
+        # If registering as a vendor, set to unverified by default
+        if user.user_type == 'vendor':
+            user.is_verified = False
+            user.save()
+
+class LoginSerializer(Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField()
+
+class LoginView(generics.GenericAPIView):
+    serializer_class = LoginSerializer
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        username = request.data.get(settings.USERNAME_FIELD)
+        password = request.data.get('password')
+        
+        user = authenticate(request, username=username, password=password)
+        if user:
+            # Check if vendor is verified
+            if user.user_type == 'vendor' and not user.is_verified:
+                return Response(
+                    {'detail': 'Your vendor account is pending verification'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'user': UserSerializer(user).data,
+                'access_token': str(refresh.access_token),
+                'refresh_token': str(refresh),
+            })
+        return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 class IsVendorOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:
@@ -53,14 +110,14 @@ class AdministratorDashboardViewSet(viewsets.ViewSet):
         """Get administrator dashboard metrics"""
         today = timezone.now().date()
         metrics, _ = AdministratorDashboardMetrics.objects.get_or_create(date=today)
-        
+
         # Update metrics
         metrics.total_users = User.objects.count()
         metrics.total_vendors = User.objects.filter(user_type='vendor').count()
         metrics.total_products = Product.objects.count()
         metrics.pending_approvals = Product.objects.filter(approval_status='pending').count()
         metrics.pending_payouts = VendorEarning.objects.filter(status='pending').count()
-        
+
         # Calculate sales and commission for today
         today_transactions = Transaction.objects.filter(
             created_at__date=today,
@@ -70,9 +127,9 @@ class AdministratorDashboardViewSet(viewsets.ViewSet):
         metrics.total_commission = OrderItem.objects.filter(
             order__transaction__in=today_transactions
         ).aggregate(Sum('platform_fee'))['platform_fee__sum'] or 0
-        
+
         metrics.save()
-        
+
         serializer = AdministratorDashboardMetricsSerializer(metrics)
         return Response(serializer.data)
 
@@ -157,7 +214,7 @@ class VendorDashboardViewSet(viewsets.ViewSet):
                 {'detail': 'Only vendors can access this dashboard'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         # Get vendor statistics
         products_count = Product.objects.filter(vendor=request.user).count()
         orders_count = Order.objects.filter(items__product__vendor=request.user).distinct().count()
@@ -262,8 +319,8 @@ class ProductViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def featured(self, request):
         featured_products = Product.objects.filter(
-            featured=True, 
-            is_active=True, 
+            featured=True,
+            is_active=True,
             approval_status='approved'
         ).order_by('-created_at')[:8]
         serializer = self.get_serializer(featured_products, many=True)
@@ -300,20 +357,20 @@ class OrderViewSet(viewsets.ModelViewSet):
     def update_status(self, request, pk=None):
         order = self.get_object()
         new_status = request.data.get('status')
-        
+
         if not new_status:
             return Response(
                 {'error': 'Status is required'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         # Only vendors can update to 'shipped'
         if new_status == 'shipped' and not request.user.is_vendor:
             return Response(
                 {'error': 'Only vendors can mark orders as shipped'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         order.status = new_status
         order.save()
         return Response({'message': f'Order status updated to {new_status}'})
@@ -337,12 +394,12 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 {'error': 'Only administrators can approve payments'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         transaction = self.get_object()
         transaction.admin_approved = True
         transaction.admin_note = request.data.get('note', '')
         transaction.save()
-        
+
         # Create vendor earnings
         for item in transaction.order.items.all():
             VendorEarning.objects.create(
@@ -350,7 +407,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 order_item=item,
                 amount=item.vendor_earning
             )
-        
+
         return Response({'message': 'Payment approved and vendor earnings created'})
 
 class CartViewSet(viewsets.ModelViewSet):
@@ -368,25 +425,25 @@ class CartViewSet(viewsets.ModelViewSet):
         product_id = request.data.get('product')
         quantity = request.data.get('quantity', 1)
         variant_id = request.data.get('variant')
-        
+
         try:
             product = Product.objects.get(pk=product_id)
             if variant_id:
                 variant = ProductVariant.objects.get(pk=variant_id)
             else:
                 variant = None
-            
+
             cart_item, created = CartItem.objects.get_or_create(
                 cart=cart,
                 product=product,
                 variant=variant,
                 defaults={'quantity': quantity}
             )
-            
+
             if not created:
                 cart_item.quantity += quantity
                 cart_item.save()
-            
+
             return Response({'message': 'Item added to cart'})
         except (Product.DoesNotExist, ProductVariant.DoesNotExist):
             return Response(
@@ -407,7 +464,7 @@ class WishlistViewSet(viewsets.ModelViewSet):
     def add_item(self, request, pk=None):
         wishlist = self.get_object()
         product_id = request.data.get('product')
-        
+
         try:
             product = Product.objects.get(pk=product_id)
             WishlistItem.objects.get_or_create(
@@ -427,64 +484,7 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_permissions(self):
-        if self.action in ['register', 'login']:
-            return [permissions.AllowAny()]
         return [permission() for permission in self.permission_classes]
-
-    @action(detail=False, methods=['post'])
-    def register(self, request):
-        # Don't allow registration as administrator
-        if request.data.get('user_type') == 'administrator':
-            return Response(
-                {'detail': 'Administrator accounts can only be created through the admin panel'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            
-            # Handle profile image
-            if 'profile_image' in request.FILES:
-                user.profile_image = request.FILES['profile_image']
-                user.save()
-
-            # If registering as a vendor, set to unverified by default
-            if user.user_type == 'vendor':
-                user.is_verified = False
-                user.save()
-
-            # Generate token
-            refresh = RefreshToken.for_user(user)
-            
-            return Response({
-                'user': UserSerializer(user).data,
-                'access_token': str(refresh.access_token),
-                'refresh_token': str(refresh),
-            }, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=False, methods=['post'])
-    def login(self, request):
-        email = request.data.get('email')
-        password = request.data.get('password')
-        
-        user = authenticate(username=email, password=password)
-        if user:
-            # Check if vendor is verified
-            if user.user_type == 'vendor' and not user.is_verified:
-                return Response(
-                    {'detail': 'Your vendor account is pending verification'},
-                    status=status.HTTP_403_FORBIDDEN
-                )
-
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                'user': UserSerializer(user).data,
-                'access_token': str(refresh.access_token),
-                'refresh_token': str(refresh),
-            })
-        return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
     @action(detail=False, methods=['get'])
     def me(self, request):
@@ -494,7 +494,7 @@ class UserViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['patch'])
     def update_profile(self, request):
         user = request.user
-        
+
         # Don't allow changing user_type through profile update
         if 'user_type' in request.data:
             return Response(
@@ -510,7 +510,7 @@ class UserViewSet(viewsets.ModelViewSet):
                 if user.profile_image:
                     user.profile_image.delete(save=False)
                 user.profile_image = request.FILES['profile_image']
-            
+
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -520,7 +520,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # Allow public read access
     lookup_field = 'slug'
-    
+
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [IsAuthenticated(), IsAdministrator()]
@@ -529,7 +529,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    
+
     def get_queryset(self):
         return Review.objects.all()
 

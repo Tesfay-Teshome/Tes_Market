@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await axios.post('/api/token/', { email, password });
+      const response = await axios.post('/token/', { username: email,password: password });  // Corrected: Removed /api
       const { access, user } = response.data;
       localStorage.setItem('authToken', access);
       setUser(user);
@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const logout = async () => {
     try {
-      await axios.post('/api/auth/logout/');
+      await axios.post('/auth/logout/');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     role: 'buyer' | 'vendor';
   }) => {
     try {
-      const response = await axios.post('/api/auth/registration/', userData);
+      const response = await axios.post('/auth/registration/', userData);  // Corrected: Removed /api
       const { access, user } = response.data;
       localStorage.setItem('authToken', access);
       setUser(user);
@@ -101,7 +101,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       throw error;
     }
   };
-
+  
   const value = {
     user,
     loading,

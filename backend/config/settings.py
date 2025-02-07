@@ -82,7 +82,7 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            BASE_DIR / 'app' / 'templates',
+            BASE_DIR / 'frontend' / 'src' / 'pages',
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -144,7 +144,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+
 
 # Media files
 MEDIA_URL = '/media/'
@@ -164,6 +165,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom user model
 AUTH_USER_MODEL = 'app.User'
+USERNAME_FIELD = 'email'
 LOGIN_URL = 'rest_framework:login'
 LOGIN_REDIRECT_URL = 'schema-swagger-ui'
 LOGOUT_REDIRECT_URL = 'schema-swagger-ui'
@@ -225,6 +227,8 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
 ]
 CORS_ALLOW_METHODS = [
     'DELETE',

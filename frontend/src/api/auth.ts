@@ -41,7 +41,7 @@ export const loginUser = async (credentials: LoginCredentials): Promise<AuthResp
 
 export const registerUser = async (data: RegisterData): Promise<AuthResponse> => {
   try {
-    const response = await axios.post(`${API_URL}/registration/`, data);
+    const response = await axios.post(`${API_URL}/register/`, data);
     return response.data;
   } catch (error: any) {
     if (error.response?.data?.message) {
@@ -121,17 +121,17 @@ axios.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refresh_token');
-        if (!refreshToken) {
+        const storedRefreshToken = localStorage.getItem('refresh_token');
+        if (!storedRefreshToken) {
           throw new Error('No refresh token available');
         }
 
-        const { access } = await refreshToken(refreshToken);
+        const { access } = await refreshToken(storedRefreshToken);
         localStorage.setItem('access_token', access);
         
         // Update the failed request's authorization header
         originalRequest.headers.Authorization = `Bearer ${access}`;
-        
+       
         // Retry the original request
         return axios(originalRequest);
       } catch (refreshError) {

@@ -7,7 +7,7 @@ const AuthPage: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, register } = useAuth();
+  const { } = useAuth();
 
   // Get the return URL from location state, or default to '/'
   const from = (location.state as { from?: string })?.from || '/';

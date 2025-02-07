@@ -44,7 +44,7 @@ interface Stats {
 
 const fetchFeaturedProducts = async (): Promise<Product[]> => {
   try {
-    const response = await axios.get('/api/products/featured/');
+    const response = await axios.get('/products/featured/');
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
     console.error('Failed to fetch featured products:', error);
@@ -55,7 +55,7 @@ const fetchFeaturedProducts = async (): Promise<Product[]> => {
 
 const fetchCategories = async (): Promise<Category[]> => {
   try {
-    const response = await axios.get('/api/categories/');
+    const response = await axios.get('/categories/');
     return Array.isArray(response.data) ? response.data : [];
   } catch (error) {
     console.error('Failed to fetch categories:', error);
@@ -66,7 +66,7 @@ const fetchCategories = async (): Promise<Category[]> => {
 
 const fetchStats = async (): Promise<Stats> => {
   try {
-    const response = await axios.get('/api/stats/');
+    const response = await axios.get('/stats/');
     return response.data;
   } catch (error) {
     console.error('Failed to fetch stats:', error);
@@ -151,10 +151,20 @@ const Home = () => {
       );
     }
 
+    const handleAddToCart = () => {
+      // Logic to add the product to the cart
+    };
+
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {featuredProducts.map((product) => (
-          <ProductCard key={product.id} product={product} />
+          <ProductCard
+          id={product.id}
+          title={product.title}
+          price={product.price}
+          imageUrl={product.imageUrl}
+          onAddToCart={handleAddToCart}
+        />
         ))}
       </div>
     );
