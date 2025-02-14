@@ -1,21 +1,17 @@
 # backend/app/views.py
-from django.shortcuts import render
 from rest_framework import viewsets, status, permissions, filters
 from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from django.db.models import Q, Sum, Count
+from django.db.models import Sum
 from django.utils import timezone
-from datetime import timedelta
-from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import get_user_model
 from .models import (
-    User, Category, Product, ProductImage, ProductVariant,
+    User, Category, Product, ProductVariant,
     Cart, CartItem, Order, OrderItem, Transaction, Review,
-    Wishlist, WishlistItem, VendorEarning, VendorAnalytics,
-    AdministratorDashboardMetrics, Testimonial
+    Wishlist, WishlistItem, VendorEarning, AdministratorDashboardMetrics, Testimonial
 )
 from .serializers import (
     UserSerializer, CategorySerializer, ProductSerializer,
