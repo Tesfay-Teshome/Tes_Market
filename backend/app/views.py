@@ -348,10 +348,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_administrator:
             return Order.objects.all()
-        elif user.is_vendor:
+        if user.is_vendor:
             return Order.objects.filter(items__product__vendor=user).distinct()
-        else:
-            return Order.objects.filter(user=user)
+        return Order.objects.filter(user=user)
 
     @action(detail=True, methods=['post'])
     def update_status(self, request, pk=None):
