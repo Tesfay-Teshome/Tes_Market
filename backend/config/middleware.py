@@ -91,8 +91,7 @@ class CORSMiddleware(MiddlewareMixin):
     def process_response(self, request, response):
         # Only allow requests from your frontend domain in production
         allowed_origins = [
-            'http://localhost:5173',  # Development
-            'http://localhost:3000',  # Alternative development port
+            'http://localhost:3000',  # Development
             settings.FRONTEND_URL,    # Production URL (should be set in settings)
         ]
         

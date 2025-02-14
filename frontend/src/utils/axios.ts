@@ -9,27 +9,16 @@ const instance = axios.create({
   headers: {
     'Content-Type': 'application/json',
     'X-Requested-With': 'XMLHttpRequest', // Required for Django to recognize AJAX requests
+    'Accept': 'application/json',  // Moved this to be consistently included
   },
 });
 
-// Add request interceptor to get CSRF token
+// Add request interceptor to get CSRF and Auth token
 instance.interceptors.request.use(
   async (config) => {
-    // Get CSRF token from cookie
-    const csrfToken = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('csrftoken='))
-      ?.split('=')[1];
-
-    // If CSRF token exists, add it to headers
-    if (csrfToken) {
-      config.headers['X-CSRFToken'] = csrfToken;
-    }
-
-    // Get auth token from localStorage
     const token = localStorage.getItem('authToken');
     if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     return config;
@@ -38,21 +27,59 @@ instance.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+// Add a response interceptor
+let isRefreshing = false; // Flag to prevent multiple refresh requests
 
-// Add response interceptor to handle token expiration and network errors
 instance.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
-      // Clear auth token on unauthorized
-      localStorage.removeItem('authToken');
-      window.location.href = '/auth/login';
-    } else if (!error.response) {
-      // Handle network errors
-      console.error('Network error:', error);
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isRefreshing) {
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Get refresh token from localStorage
+        const refreshToken = localStorage.getItem('refreshToken');
+
+        if (!refreshToken) {
+          // If there's no refresh token, redirect to login
+          window.location.href = '/auth/login';
+          return Promise.reject(error);
+        }
+
+        const refreshResponse = await axios.post('/token/refresh/', {
+          refresh: refreshToken, // Send the refresh token
+        });
+
+        const { access } = refreshResponse.data;
+
+        localStorage.setItem('authToken', access); // Update localStorage
+
+        axios.defaults.headers.common['Authorization'] = `Bearer ${access}`; // Update the authorization header
+        originalRequest.headers['Authorization'] = `Bearer ${access}`; // Update the original request
+
+        return instance(originalRequest); // Retry the original request
+
+      } catch (refreshError) {
+        // If refresh fails, redirect to login
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/auth/login';
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
     }
+
     return Promise.reject(error);
   }
 );
+
+async function getUser() {
+  const response = await instance.get('/auth/user/');
+  // Use the response here
+}
 
 export default instance;

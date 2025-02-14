@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from '../utils/axios';
+import { useNavigate } from 'react-router-dom';
 
 interface User {
   id: string;
@@ -41,6 +42,7 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     checkAuth();
@@ -54,7 +56,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return;
       }
 
-      const response = await axios.get('/api/auth/user/');
+      const response = await axios.get('/auth/user/');
       setUser(response.data);
     } catch (error) {
       localStorage.removeItem('authToken');
@@ -66,11 +68,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await axios.post('/token/', { username: email,password: password });  // Corrected: Removed /api
-      const { access, user } = response.data;
+      // Log the request payload
+      console.log("Login request payload:", { username: email, password });
+  
+      const response = await axios.post('/token/', {
+        username: email, // Use 'username' if required by your API
+        password: password,
+      });
+  
+      const { access, refresh, user } = response.data; // Assuming the response structure is correct
+  
       localStorage.setItem('authToken', access);
-      setUser(user);
-    } catch (error) {
+      localStorage.setItem('refreshToken', refresh);
+      setUser(user); 
+      navigate("/");
+    } catch (error: any) {
+      console.error("Login error:", error);
       throw error;
     }
   };

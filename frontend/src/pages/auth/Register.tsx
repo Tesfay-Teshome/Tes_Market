@@ -342,9 +342,9 @@ const Register: React.FC = () => {
                     </label>
                     <input
                       type="text"
-                      {...register('storeName', { required: 'Store name is required for vendors' })}
+                      {...register('storeName', { required: 'Store name is required for sellers' })}
                       className="auth-input"
-                      placeholder="My Store"
+                      placeholder="Your Store Name"
                     />
                     {errors.storeName && (
                       <p className="mt-2 text-sm text-red-600 font-medium">{errors.storeName.message}</p>
@@ -353,13 +353,12 @@ const Register: React.FC = () => {
 
                   <div className="space-y-2">
                     <label htmlFor="storeDescription" className="auth-label">
-                      Store Description (Optional)
+                      Store Description
                     </label>
                     <textarea
                       {...register('storeDescription')}
-                      rows={3}
                       className="auth-input"
-                      placeholder="Enter your store description"
+                      placeholder="Describe your store"
                     />
                   </div>
                 </>

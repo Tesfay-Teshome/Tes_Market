@@ -16,6 +16,9 @@ export default function Login() {
     setError('');
     setIsLoading(true);
 
+    // Log the form data
+    console.log("Form data:", { email, password });
+
     try {
       await login(email, password);
     } catch (err: any) {
