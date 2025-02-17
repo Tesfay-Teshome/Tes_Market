@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Get the base URL from environment variables or use a default for development
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 const instance = axios.create({
   baseURL,
@@ -27,6 +27,7 @@ instance.interceptors.request.use(
     return Promise.reject(error);
   }
 );
+
 // Add a response interceptor
 let isRefreshing = false; // Flag to prevent multiple refresh requests
 
@@ -51,13 +52,17 @@ instance.interceptors.response.use(
 
         const refreshResponse = await axios.post('/token/refresh/', {
           refresh: refreshToken, // Send the refresh token
+        }, {
+          headers: {
+            'Content-Type': 'application/json', // Ensure Content-Type is set for refresh token request
+          },
         });
 
         const { access } = refreshResponse.data;
 
         localStorage.setItem('authToken', access); // Update localStorage
 
-        axios.defaults.headers.common['Authorization'] = `Bearer ${access}`; // Update the authorization header
+        instance.defaults.headers.common['Authorization'] = `Bearer ${access}`; // Update the authorization header
         originalRequest.headers['Authorization'] = `Bearer ${access}`; // Update the original request
 
         return instance(originalRequest); // Retry the original request
@@ -78,7 +83,8 @@ instance.interceptors.response.use(
 );
 
 async function getUser() {
-  const response = await instance.get('/auth/user/');
+  const response = await instance.get('/users/me/');  //Corrected API Endpoint
+  return response.data; // Return the data
   // Use the response here
 }
 

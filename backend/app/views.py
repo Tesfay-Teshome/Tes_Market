@@ -35,25 +35,40 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.AllowAny]
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
         # Don't allow registration as administrator
-        if self.request.data.get('user_type') == 'administrator':
+        if request.data.get('user_type') == 'administrator':
             return Response(
                 {'detail': 'Administrator accounts can only be created through the admin panel'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
-        user = serializer.save()
 
-        # Handle profile image
-        if 'profile_image' in self.request.FILES:
-            user.profile_image = self.request.FILES['profile_image']
-            user.save()
+    def perform_create(self, serializer):
+        try:
+            user = serializer.save()
 
-        # If registering as a vendor, set to unverified by default
-        if user.user_type == 'vendor':
-            user.is_verified = False
-            user.save()
+            # Handle profile image
+            if 'profile_image' in self.request.FILES:
+                profile_image = self.request.FILES['profile_image']
+                user.profile_image.save(profile_image.name, profile_image, save=True)
+
+            # If registering as a vendor, set to unverified by default
+            if user.user_type == 'vendor':
+                user.is_verified = False
+                user.save()
+        except Exception as e:
+            print(f"Registration error: {e}")
+            return Response(
+                {'detail': 'Registration failed due to a server error.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 class LoginSerializer(Serializer):
     username = serializers.CharField()

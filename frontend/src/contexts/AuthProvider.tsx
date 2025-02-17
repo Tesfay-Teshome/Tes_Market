@@ -3,12 +3,12 @@ import axios from '../utils/axios';
 import { useNavigate } from 'react-router-dom';
 
 interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: 'buyer' | 'vendor' | 'admin';
-  profileImage?: string;
-  createdAt: string;
+    createdAt: string | number | Date;
+    id: number;
+    email: string;
+    full_name: string;
+    user_type: string;
+    is_verified: boolean;
 }
 
 interface AuthContextType {
@@ -20,8 +20,8 @@ interface AuthContextType {
   register: (userData: {
     email: string;
     password: string;
-    name: string;
-    role: 'buyer' | 'vendor';
+    full_name: string;
+    user_type: 'buyer' | 'vendor';
   }) => Promise<void>;
 }
 
@@ -40,89 +40,87 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
+    useEffect(() => {
+        checkAuth();
+    }, []);
 
-  const checkAuth = async () => {
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setLoading(false);
-        return;
-      }
+    const checkAuth = async () => {
+        try {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                setLoading(false);
+                return;
+            }
 
-      const response = await axios.get('/auth/user/');
-      setUser(response.data);
-    } catch (error) {
-      localStorage.removeItem('authToken');
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+            const response = await axios.get('/users/me/');  // Corrected API Endpoint
+            setUser(response.data);
+        } catch (error: any) {
+            console.error("Error checking auth:", error);
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('refreshToken');
+            setUser(null);
+        } finally {
+            setLoading(false);
+        }
+    };
+    const login = async (email: string, password: string) => {
+        try {
+            const response = await axios.post('/auth/login/', {
+                email: email,
+                password: password,
+            });
 
-  const login = async (email: string, password: string) => {
-    try {
-      // Log the request payload
-      console.log("Login request payload:", { username: email, password });
-  
-      const response = await axios.post('/token/', {
-        username: email, // Use 'username' if required by your API
-        password: password,
-      });
-  
-      const { access, refresh, user } = response.data; // Assuming the response structure is correct
-  
-      localStorage.setItem('authToken', access);
-      localStorage.setItem('refreshToken', refresh);
-      setUser(user); 
-      navigate("/");
-    } catch (error: any) {
-      console.error("Login error:", error);
-      throw error;
-    }
-  };
+            const { access, refresh } = response.data;
 
-  const logout = async () => {
-    try {
-      await axios.post('/auth/logout/');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      localStorage.removeItem('authToken');
-      setUser(null);
-    }
-  };
+            localStorage.setItem('authToken', access);
+            localStorage.setItem('refreshToken', refresh);
 
-  const register = async (userData: {
-    email: string;
-    password: string;
-    name: string;
-    role: 'buyer' | 'vendor';
+            await checkAuth(); // Fetch user data after login
+            navigate("/");
+        } catch (error: any) {
+            console.error("Login error:", error);
+            throw error;
+        }
+    };
+
+    const logout = async () => {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('refreshToken');
+        setUser(null);
+        navigate('/auth/login');
+    };
+
+    const register = async (userData: {
+      email: string;
+      password: string;
+      full_name: string;
+      user_type: 'buyer' | 'vendor';
   }) => {
-    try {
-      const response = await axios.post('/auth/registration/', userData);  // Corrected: Removed /api
-      const { access, user } = response.data;
-      localStorage.setItem('authToken', access);
-      setUser(user);
-    } catch (error) {
-      throw error;
-    }
-  };
-  
-  const value = {
-    user,
-    loading,
-    isAuthenticated: !!user,
-    login,
-    logout,
-    register,
+      try {
+          await axios.post('/auth/register/', userData);
+          await login(userData.email, userData.password);
+      } catch (error: any) {
+          console.error("Registration error:", error);
+          throw error;
+      }
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    const value = {
+        user,
+        loading,
+        isAuthenticated: !!user,
+        login,
+        logout,
+        register,
+    };
+
+    return (
+        <AuthContext.Provider value={value}>
+            {children}
+        </AuthContext.Provider>
+    );
 };

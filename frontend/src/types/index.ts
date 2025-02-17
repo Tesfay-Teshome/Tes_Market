@@ -1,10 +1,10 @@
 export interface User {
-  id: string;
+  id: number;
   email: string;
-  name: string;
-  role: 'buyer' | 'vendor' | 'admin';
-  profileImage?: string;
-  createdAt: string;
+  full_name: string;
+  user_type: 'buyer' | 'vendor' | 'admin'; 
+  is_verified: boolean;
+  createdAt: string | number | Date;
 }
 
 export interface Product {

@@ -1,8 +1,9 @@
+import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { useAuth } from './contexts/AuthProvider';
+import { useAuth } from './contexts/AuthProvider'; // Correct import
 import { CartProvider } from './context/CartContext';
 
 // Import all pages
@@ -32,7 +33,7 @@ const ProtectedRouteWrapper = ({ children, vendorOnly = false }: { children: Rea
     return <Navigate to="/auth/login" />;
   }
 
-  if (vendorOnly && user?.role !== 'vendor') {
+  if (vendorOnly && user?.user_type !== 'vendor') {
     return <Navigate to="/" />;
   }
 
@@ -63,12 +64,11 @@ function App() {
             <Route element={<ProtectedRouteWrapper><Outlet /></ProtectedRouteWrapper>}>
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/orders" element={<OrderHistory />} />
-              <Route path="/profile" element={<Profile />} />
+              <Route path="/profile" element={<Profile />} />  {/* Removed nested ProtectedRouteWrapper */}
               <Route path="/vendor/dashboard" element={<VendorDashboard />} />
               <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
             </Route>
-
             {/* 404 Route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
