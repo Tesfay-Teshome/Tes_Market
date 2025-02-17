@@ -26,6 +26,7 @@ export interface AuthResponse {
     user: User;
 }
 
+const API_URL = '';  // The baseURL is already set in your axios instance, so leave this empty
 
 export const loginUser = async (credentials: LoginCredentials): Promise<AuthResponse> => {
     try {

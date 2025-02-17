@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
+from django.db import IntegrityError
 from .models import (
     Category, Product, ProductImage, ProductVariant,
     Cart, CartItem, Order, OrderItem, Transaction,
@@ -9,29 +11,40 @@ from .models import (
 
 User = get_user_model()
 
+from rest_framework import serializers
+from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
+from django.db import IntegrityError  # ***CRITICAL: Missing import***
+
+User = get_user_model()
+
 class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
-    confirm_password = serializers.CharField(write_only=True)
-    full_name = serializers.CharField(write_only=True, required=True)  # Accept snake_case
-    phone_number = serializers.CharField(source='phone', required=False, allow_blank=True)  # Accept snake_case
-    user_type = serializers.CharField(required=True)  # Accept snake_case
-    store_name = serializers.CharField(required=False, allow_blank=True)  # Accept snake_case
-    store_description = serializers.CharField(required=False, allow_blank=True)  # Accept snake_case
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    confirm_password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    full_name = serializers.CharField(write_only=False, required=True)
+    phone_number = serializers.CharField(source='phone', required=False, allow_blank=True)
+    user_type = serializers.CharField(required=True)
+    store_name = serializers.CharField(required=False, allow_blank=True)
+    store_description = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'password', 'confirm_password', 'full_name',
+            'id', 'username', 'email', 'password', 'confirm_password', 'full_name',
             'phone_number', 'address', 'user_type', 'store_name',
             'store_description', 'profile_image', 'is_verified',
             'date_joined'
         )
-        read_only_fields = ('is_verified', 'date_joined')
+        read_only_fields = ('id', 'is_verified', 'date_joined')
+        extra_kwargs = {
+            'email': {'required': True},
+            'username': {'read_only': True}
+        }
 
     def validate(self, data):
         if data.get('password') != data.get('confirm_password'):
             raise serializers.ValidationError("Passwords don't match")
-        
+
         # Validate user_type
         user_type = data.get('user_type')
         if user_type not in ['buyer', 'vendor']:
@@ -44,28 +57,28 @@ class UserSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
+        # Hash the password
+        validated_data['password'] = make_password(validated_data.get('password'))
+
+        # Automatically create username from email
+        validated_data['username'] = validated_data.get('email')
+
         # Handle the full name
         full_name = validated_data.pop('full_name', '')
-        name_parts = full_name.split(' ', 1)
-        first_name = name_parts[0]
-        last_name = name_parts[1] if len(name_parts) > 1 else ''
 
         # Remove confirm_password
         validated_data.pop('confirm_password')
 
-        # Create username from email
-        validated_data['username'] = validated_data.get('email')
+        try:
+            user = User.objects.create(**validated_data) # Remove create_user
+            # Set full name
+            user.full_name = full_name
+            user.save()
+            return user
 
-        # Set first and last name
-        validated_data['first_name'] = first_name
-        validated_data['last_name'] = last_name
-
-        # Convert user_type 'seller' to 'vendor'
-        if validated_data.get('user_type') == 'seller':
-            validated_data['user_type'] = 'vendor'
-
-        user = User.objects.create_user(**validated_data)
-        return user
+        except IntegrityError as e:
+            raise serializers.ValidationError({"username": "This email is already registered."}) # Show to front end.
+                
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)  # Changed from username to email
     password = serializers.CharField(required=True)
