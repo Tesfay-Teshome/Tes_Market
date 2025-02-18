@@ -1,3 +1,5 @@
+// frontend/src/contexts/AuthProvider.tsx
+
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import axios from '../utils/axios';
 import { useNavigate } from 'react-router-dom';
@@ -12,31 +14,31 @@ interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  register: (userData: {
-    email: string;
-    password: string;
-    full_name: string;
-    user_type: 'buyer' | 'vendor';
-  }) => Promise<void>;
+    user: User | null;
+    loading: boolean;
+    isAuthenticated: boolean;
+    login: (email: string, password: string) => Promise<void>;
+    logout: () => Promise<void>;
+    register: (userData: {
+        email: string;
+        password: string;
+        full_name: string;
+        user_type: 'buyer' | 'vendor';
+    }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
 };
 
 interface AuthProviderProps {
-  children: ReactNode;
+    children: ReactNode;
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
@@ -70,7 +72,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const login = async (email: string, password: string) => {
         try {
             const response = await axios.post('/auth/login/', {
-                email: email,
+                username: email,
                 password: password,
             });
 
@@ -80,7 +82,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             localStorage.setItem('refreshToken', refresh);
 
             await checkAuth(); // Fetch user data after login
-            navigate("/");
+            const userType = response.data.user_type; //Get Response
+
+            // Navigate to the appropriate dashboard based on user type
+            if (userType === 'vendor') {
+              navigate('/vendor/dashboard');
+            } else {
+              navigate('/buyer/dashboard');
+            }
         } catch (error: any) {
             console.error("Login error:", error);
             throw error;
@@ -95,19 +104,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
 
     const register = async (userData: {
-      email: string;
-      password: string;
-      full_name: string;
-      user_type: 'buyer' | 'vendor';
-  }) => {
-      try {
-          await axios.post('/auth/register/', userData);
-          await login(userData.email, userData.password);
-      } catch (error: any) {
-          console.error("Registration error:", error);
-          throw error;
-      }
-  };
+        email: string;
+        password: string;
+        full_name: string;
+        user_type: 'buyer' | 'vendor';
+    }) => {
+        try {
+            await axios.post('/auth/register/', userData);
+            await login(userData.email, userData.password);
+        } catch (error: any) {
+            console.error("Registration error:", error);
+            throw error;
+        }
+    };
 
     const value = {
         user,
@@ -124,3 +133,4 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         </AuthContext.Provider>
     );
 };
+export default AuthContext;

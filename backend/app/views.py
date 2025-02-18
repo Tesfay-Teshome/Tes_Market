@@ -10,6 +10,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from .serializers import UserSerializer, LoginSerializer  
 from django.contrib.auth import get_user_model
 from .models import (
     User, Category, Product, ProductImage, ProductVariant,
@@ -68,7 +69,10 @@ class RegisterView(generics.CreateAPIView):
                 {'detail': 'Registration failed due to a server error.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
+        return Response(
+            {'detail': 'Registration successful.'},
+            status=status.HTTP_201_CREATED
+        )  
 
 class LoginSerializer(Serializer):
     username = serializers.CharField()

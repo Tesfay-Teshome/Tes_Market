@@ -1,4 +1,4 @@
-# backend/Tes_Market/urls.py
+# backend/config/urls.py
 from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
@@ -45,15 +45,14 @@ urlpatterns = [
     # API Documentation
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+] 
 
-# Serve media files in development
+# Serve static files during development and serve static files during production
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
-# Add catch-all pattern for frontend routes
 urlpatterns += [
-    # This should be the last pattern in your urlpatterns
-    re_path(r'^(?:.*)/?$', TemplateView.as_view(template_name='index.html')),
+    # Catch-all pattern for frontend routes (MUST be the last pattern)
+    re_path(r'^(?P<path>.*)\.*$', TemplateView.as_view(template_name="index.html")),
 ]

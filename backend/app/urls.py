@@ -46,7 +46,6 @@ urlpatterns = [
     path('auth/user/', views.UserViewSet.as_view({'get': 'me', 'patch': 'update_profile'}), name='user-profile'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),# New url that calls refresh
 ]
-
 # Add media URL patterns for development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
