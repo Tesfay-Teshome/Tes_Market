@@ -5,7 +5,7 @@ import api from '@/lib/axios';
 import { AdminDashboardMetrics } from '@/types';
 
 const Dashboard = () => {
-  const { data: metrics, isLoading } = useQuery<AdminDashboardMetrics>({
+  const { data: metrics, isLoading, isError } = useQuery<AdminDashboardMetrics>({
     queryKey: ['admin-metrics'],
     queryFn: async () => {
       const response = await api.get('/admin/metrics/');
@@ -19,6 +19,10 @@ const Dashboard = () => {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
+  }
+
+  if (isError) {
+    return <div className="text-red-500">Failed to load metrics</div>;
   }
 
   const stats = [
@@ -36,7 +40,7 @@ const Dashboard = () => {
     },
     {
       name: 'Total Sales',
-      value: `$${metrics?.total_sales.toFixed(2) || '0.00'}`,
+      value: `$${(metrics?.total_sales || 0).toFixed(2)}`,
       icon: CreditCard,
       color: 'bg-purple-500',
     },
