@@ -1,239 +1,262 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  Search, 
-  SlidersHorizontal, 
-  Star, 
-  Heart,
-  ChevronDown,
-  X
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link, useLocation } from 'react-router-dom';
+import { Search, Filter, ShoppingCart, Heart, Star } from 'lucide-react';
+import { productsAPI, categoriesAPI } from '@/services/api';
+import { Product, Category } from '@/types';
+import { useDispatch } from 'react-redux';
+import { addItem } from '@/store/slices/cartSlice';
+import { useToast } from '@/components/ui/use-toast';
+import FadeIn from '@/components/animations/FadeIn';
 
 const Products = () => {
+  const location = useLocation();
+  const dispatch = useDispatch();
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState('newest');
-  const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  const categories = [
-    { id: 'electronics', name: 'Electronics', count: 120 },
-    { id: 'fashion', name: 'Fashion', count: 250 },
-    { id: 'home', name: 'Home & Living', count: 180 },
-    { id: 'sports', name: 'Sports', count: 90 },
-  ];
+  // Parse query parameters
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const category = params.get('category');
+    if (category) {
+      setSelectedCategory(category);
+    }
+  }, [location.search]);
 
-  const products = [
-    {
-      id: 1,
-      title: "Premium Headphones",
-      price: 299.99,
-      rating: 4.8,
-      reviews: 245,
-      image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80",
-      vendor: "Audio Tech Pro"
+  // Fetch categories
+  const { data: categories } = useQuery<Category[]>({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const response = await categoriesAPI.getAll();
+      return response.data;
     },
-    {
-      id: 2,
-      title: "Smart Watch",
-      price: 199.99,
-      rating: 4.6,
-      reviews: 189,
-      image: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=500&q=80",
-      vendor: "Tech Gear"
-    },
-    {
-      id: 3,
-      title: "Wireless Earbuds",
-      price: 149.99,
-      rating: 4.7,
-      reviews: 320,
-      image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=500&q=80",
-      vendor: "Sound Masters"
-    },
-    {
-      id: 4,
-      title: "Digital Camera",
-      price: 599.99,
-      rating: 4.9,
-      reviews: 156,
-      image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=500&q=80",
-      vendor: "Photo Pro"
-    },
-    // Add more products as needed
-  ];
+  });
 
-  const toggleCategory = (categoryId: string) => {
-    setSelectedCategories(prev => 
-      prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
+  // Fetch products with filters
+  const { data: products, isLoading } = useQuery<Product[]>({
+    queryKey: ['products', searchTerm, selectedCategory, priceRange, sortBy],
+    queryFn: async () => {
+      const params: Record<string, any> = {};
+      
+      if (searchTerm) params.search = searchTerm;
+      if (selectedCategory) params.category = selectedCategory;
+      if (sortBy) params.ordering = sortBy;
+      
+      // Price range would typically be handled by the backend
+      // Here we're assuming the backend supports min_price and max_price params
+      params.min_price = priceRange[0];
+      params.max_price = priceRange[1];
+      
+      const response = await productsAPI.getAll(params);
+      return response.data;
+    },
+  });
+
+  const handleAddToCart = (product: Product) => {
+    dispatch(
+      addItem({
+        id: crypto.randomUUID(),
+        product,
+        quantity: 1,
+        subtotal: product.price,
+      })
     );
+    toast({
+      title: 'Added to cart',
+      description: `${product.name} has been added to your cart.`,
+    });
   };
+
+  const handleAddToWishlist = (productId: string) => {
+    // This would typically call the wishlist API
+    toast({
+      title: 'Added to wishlist',
+      description: 'Product has been added to your wishlist.',
+    });
+  };
+
+  const toggleFilter = () => {
+    setIsFilterOpen(!isFilterOpen);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-2xl font-bold">All Products</h1>
-          <p className="text-gray-600">Showing {products.length} results</p>
-        </div>
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <div className="relative flex-grow md:flex-grow-0">
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <Search className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" />
-          </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="md:hidden bg-gray-100 p-2 rounded-lg"
-          >
-            <SlidersHorizontal className="h-5 w-5" />
-          </button>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="newest">Newest First</option>
-            <option value="price-low">Price: Low to High</option>
-            <option value="price-high">Price: High to Low</option>
-            <option value="popular">Most Popular</option>
-          </select>
-        </div>
-      </div>
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Products</h1>
 
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Filters - Desktop */}
-        <div className="hidden md:block w-64 space-y-6">
-          {/* Categories */}
-          <div>
-            <h3 className="font-semibold mb-4">Categories</h3>
-            <div className="space-y-2">
-              {categories.map((category) => (
-                <label key={category.id} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={selectedCategories.includes(category.id)}
-                    onChange={() => toggleCategory(category.id)}
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span className="ml-2 text-gray-600">{category.name}</span>
-                  <span className="ml-auto text-gray-400 text-sm">{category.count}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Price Range */}
-          <div>
-            <h3 className="font-semibold mb-4">Price Range</h3>
-            <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <input
-                  type="number"
-                  value={priceRange[0]}
-                  onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
-                  className="w-24 border rounded px-2 py-1"
-                  placeholder="Min"
-                />
-                <span>to</span>
-                <input
-                  type="number"
-                  value={priceRange[1]}
-                  onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                  className="w-24 border rounded px-2 py-1"
-                  placeholder="Max"
-                />
-              </div>
+      {/* Search and Filter Section */}
+      <div className="mb-8">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
               <input
-                type="range"
-                min="0"
-                max="1000"
-                value={priceRange[1]}
-                onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                className="w-full"
+                type="text"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+              <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
             </div>
           </div>
-
-          {/* Ratings */}
-          <div>
-            <h3 className="font-semibold mb-4">Rating</h3>
-            <div className="space-y-2">
-              {[4, 3, 2, 1].map((rating) => (
-                <label key={rating} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <div className="ml-2 flex items-center">
-                    {[...Array(rating)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 text-yellow-400 fill-current" />
-                    ))}
-                    {[...Array(5 - rating)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 text-gray-300" />
-                    ))}
-                    <span className="ml-2 text-gray-600">& Up</span>
-                  </div>
-                </label>
+          <div className="flex items-center gap-4">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Categories</option>
+              {categories?.map((category) => (
+                <option key={category.id} value={category.slug}>
+                  {category.name}
+                </option>
               ))}
-            </div>
+            </select>
+            <button 
+              onClick={toggleFilter}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+            >
+              <Filter className="h-5 w-5" />
+              <span>Filter</span>
+            </button>
           </div>
         </div>
 
-        {/* Product Grid */}
-        <div className="flex-1">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.map((product) => (
-              <Link
-                key={product.id}
-                to={`/products/${product.id}`}
-                className="bg-white rounded-xl shadow-sm overflow-hidden group"
-              >
-                <div className="relative">
-                  <img 
-                    src={product.image} 
-                    alt={product.title}
-                    className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-200"
+        {/* Advanced Filters */}
+        {isFilterOpen && (
+          <div className="mt-4 p-4 bg-white rounded-lg shadow-md">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Price Range</h3>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    value={priceRange[0]}
+                    onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])}
+                    className="w-full px-3 py-2 border rounded-md"
+                    placeholder="Min"
                   />
-                  <button className="absolute top-3 right-3 p-1.5 bg-white rounded-full shadow-sm hover:scale-110 transition-transform duration-200">
-                    <Heart className="h-4 w-4 text-gray-600" />
-                  </button>
+                  <span>to</span>
+                  <input
+                    type="number"
+                    min="0"
+                    value={priceRange[1]}
+                    onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
+                    className="w-full px-3 py-2 border rounded-md"
+                    placeholder="Max"
+                  />
                 </div>
-                <div className="p-4">
-                  <p className="text-sm text-gray-500 mb-1">{product.vendor}</p>
-                  <h3 className="font-semibold text-lg mb-2">{product.title}</h3>
-                  <div className="flex items-center justify-between">
-                    <p className="text-indigo-600 font-bold">${product.price}</p>
-                    <div className="flex items-center text-yellow-400">
-                      <Star className="h-4 w-4 fill-current" />
-                      <span className="text-gray-600 text-sm ml-1">{product.rating}</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Sort By</h3>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  <option value="">Default</option>
+                  <option value="price">Price: Low to High</option>
+                  <option value="-price">Price: High to Low</option>
+                  <option value="-created_at">Newest First</option>
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedCategory('');
+                    setPriceRange([0, 1000]);
+                    setSortBy('');
+                  }}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  Reset Filters
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Mobile Filters */}
-      {showFilters && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden">
-          <div className="absolute inset-y-0 right-0 w-full max-w-xs bg-white p-6 overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold">Filters</h2>
-              <button onClick={() => setShowFilters(false)}>
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-            {/* Mobile filter content - same as desktop but styled for mobile */}
-            {/* Add mobile-specific filter UI here */}
-          </div>
+      {/* Products Grid */}
+      {products && products.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {products.map((product, index) => (
+            <FadeIn key={product.id} delay={index * 0.05} direction="up">
+              <div className="bg-white rounded-lg shadow-md overflow-hidden hover-card">
+                <Link to={`/products/${product.slug}`} className="block">
+                  <div className="aspect-w-1 aspect-h-1">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-64 object-cover object-center"
+                    />
+                  </div>
+                </Link>
+                <div className="p-4">
+                  <Link to={`/products/${product.slug}`} className="block">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {product.name}
+                    </h3>
+                    <p className="text-gray-500 text-sm mb-2 line-clamp-2">
+                      {product.description}
+                    </p>
+                    <div className="flex items-center mb-2">
+                      <div className="flex text-yellow-400">
+                        <Star className="h-4 w-4 fill-current" />
+                        <Star className="h-4 w-4 fill-current" />
+                        <Star className="h-4 w-4 fill-current" />
+                        <Star className="h-4 w-4 fill-current" />
+                        <Star className="h-4 w-4 fill-current" />
+                      </div>
+                      <span className="text-xs text-gray-500 ml-2">(5.0)</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg font-bold text-blue-600">
+                        ${product.price}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {product.stock} in stock
+                      </span>
+                    </div>
+                  </Link>
+                  <div className="mt-4 flex items-center gap-2">
+                    <button
+                      onClick={() => handleAddToCart(product)}
+                      className="flex-1 flex items-center justify-center gap-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      <ShoppingCart className="h-4 w-4" />
+                      <span>Add to Cart</span>
+                    </button>
+                    <button
+                      onClick={() => handleAddToWishlist(product.id)}
+                      className="p-2 text-gray-500 hover:text-red-500 border border-gray-200 rounded-md hover:border-red-500 transition-colors"
+                    >
+                      <Heart className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-semibold text-gray-700">No products found</h2>
+          <p className="text-gray-500 mt-2">Try adjusting your search or filter criteria</p>
         </div>
       )}
     </div>

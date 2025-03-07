@@ -1,125 +1,153 @@
 import React from 'react';
-import { Shield, Users, Globe, Award } from 'lucide-react';
+import { ShoppingBag, Shield, Users, TrendingUp } from 'lucide-react';
+import FadeIn from '@/components/animations/FadeIn';
+import ScrollReveal from '@/components/animations/ScrollReveal';
 
 const About = () => {
   const stats = [
     {
-      value: '10k+',
+      icon: Users,
+      value: '10K+',
       label: 'Active Users',
-      icon: Users
+      color: 'bg-blue-500',
     },
     {
-      value: '5k+',
-      label: 'Products Listed',
-      icon: Globe
+      icon: ShoppingBag,
+      value: '50K+',
+      label: 'Products',
+      color: 'bg-green-500',
     },
     {
-      value: '1k+',
-      label: 'Verified Vendors',
-      icon: Shield
+      icon: Shield,
+      value: '99.9%',
+      label: 'Secure Transactions',
+      color: 'bg-purple-500',
     },
     {
-      value: '99%',
-      label: 'Customer Satisfaction',
-      icon: Award
-    }
+      icon: TrendingUp,
+      value: '24/7',
+      label: 'Support',
+      color: 'bg-orange-500',
+    },
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <div className="min-h-screen">
       {/* Hero Section */}
-      <div className="text-center mb-16">
-        <h1 className="text-4xl font-bold mb-6">About MarketPlace</h1>
-        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-          We're building the most trusted marketplace for buyers and sellers to connect, 
-          trade, and grow together.
-        </p>
-      </div>
+      <section className="bg-blue-600 text-white py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <FadeIn>
+              <h1 className="text-4xl md:text-5xl font-bold mb-6">
+                About Tes Market
+              </h1>
+              <p className="text-xl text-blue-100 max-w-2xl mx-auto">
+                Your trusted marketplace for quality products and reliable vendors
+              </p>
+            </FadeIn>
+          </div>
+        </div>
+      </section>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-        {stats.map((stat) => (
-          <div key={stat.label} className="bg-white p-6 rounded-xl shadow-sm text-center">
-            <div className="flex justify-center mb-4">
-              <div className="bg-indigo-100 p-3 rounded-lg">
-                <stat.icon className="h-6 w-6 text-indigo-600" />
+      {/* Stats Section */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {stats.map((stat, index) => (
+              <FadeIn key={index} delay={index * 0.1}>
+                <div className="text-center">
+                  <div className={`${stat.color} inline-block p-4 rounded-lg text-white mb-4`}>
+                    <stat.icon className="h-8 w-8" />
+                  </div>
+                  <div className="text-3xl font-bold text-gray-900 mb-2">
+                    {stat.value}
+                  </div>
+                  <div className="text-gray-600">{stat.label}</div>
+                </div>
+              </FadeIn>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Mission Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <ScrollReveal>
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Mission</h2>
+              <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+                To create a trusted marketplace that connects quality vendors with buyers,
+                ensuring a seamless and secure shopping experience for everyone.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <FadeIn direction="left">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                  What Sets Us Apart
+                </h3>
+                <ul className="space-y-4">
+                  <li className="flex items-start">
+                    <Shield className="h-6 w-6 text-blue-600 mr-2 flex-shrink-0" />
+                    <p className="text-gray-600">
+                      Rigorous vendor verification process to ensure quality
+                    </p>
+                  </li>
+                  <li className="flex items-start">
+                    <Users className="h-6 w-6 text-blue-600 mr-2 flex-shrink-0" />
+                    <p className="text-gray-600">
+                      Strong community of buyers and sellers
+                    </p>
+                  </li>
+                  <li className="flex items-start">
+                    <TrendingUp className="h-6 w-6 text-blue-600 mr-2 flex-shrink-0" />
+                    <p className="text-gray-600">
+                      Continuous platform improvements based on user feedback
+                    </p>
+                  </li>
+                </ul>
               </div>
-            </div>
-            <h3 className="text-3xl font-bold mb-2">{stat.value}</h3>
-            <p className="text-gray-600">{stat.label}</p>
-          </div>
-        ))}
-      </div>
+            </FadeIn>
 
-      {/* Mission */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2">
-          <div className="p-8 lg:p-12">
-            <h2 className="text-2xl font-bold mb-4">Our Mission</h2>
-            <p className="text-gray-600 mb-6">
-              To create a thriving ecosystem where buyers can discover unique products from trusted vendors, 
-              and sellers can grow their businesses with the tools and support they need to succeed.
-            </p>
-            <ul className="space-y-4">
-              <li className="flex items-center">
-                <Shield className="h-5 w-5 text-indigo-600 mr-3" />
-                <span>Verified vendors and secure transactions</span>
-              </li>
-              <li className="flex items-center">
-                <Users className="h-5 w-5 text-indigo-600 mr-3" />
-                <span>Strong community support</span>
-              </li>
-              <li className="flex items-center">
-                <Globe className="h-5 w-5 text-indigo-600 mr-3" />
-                <span>Global marketplace reach</span>
-              </li>
-            </ul>
+            <FadeIn direction="right">
+              <div className="bg-white p-8 rounded-lg shadow-lg">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                  Our Values
+                </h3>
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                      Trust & Security
+                    </h4>
+                    <p className="text-gray-600">
+                      We prioritize the security of transactions and user data
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                      Quality Assurance
+                    </h4>
+                    <p className="text-gray-600">
+                      We maintain high standards for product quality
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                      Customer Satisfaction
+                    </h4>
+                    <p className="text-gray-600">
+                      We strive to exceed customer expectations
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </FadeIn>
           </div>
-          <div 
-            className="h-64 lg:h-auto bg-cover bg-center"
-            style={{
-              backgroundImage: "url('https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800&q=80')"
-            }}
-          />
         </div>
-      </div>
-
-      {/* Team */}
-      <div className="text-center mb-16">
-        <h2 className="text-2xl font-bold mb-4">Our Team</h2>
-        <p className="text-gray-600 max-w-2xl mx-auto mb-12">
-          We're a diverse team of experts committed to building the best marketplace platform.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[
-            {
-              name: 'John Smith',
-              role: 'CEO & Founder',
-              image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&q=80'
-            },
-            {
-              name: 'Sarah Johnson',
-              role: 'Head of Operations',
-              image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80'
-            },
-            {
-              name: 'Michael Chen',
-              role: 'Tech Lead',
-              image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=80'
-            }
-          ].map((member) => (
-            <div key={member.name} className="bg-white p-6 rounded-xl shadow-sm">
-              <img
-                src={member.image}
-                alt={member.name}
-                className="w-32 h-32 rounded-full mx-auto mb-4 object-cover"
-              />
-              <h3 className="font-semibold text-lg">{member.name}</h3>
-              <p className="text-gray-600">{member.role}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+      </section>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-# backend/app/views.py
+import logging
 from django.shortcuts import render
 from rest_framework import viewsets, status, permissions, filters
 from rest_framework import serializers
@@ -73,35 +73,56 @@ class RegisterView(generics.CreateAPIView):
             {'detail': 'Registration successful.'},
             status=status.HTTP_201_CREATED
         )  
-
-class LoginSerializer(Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField()
+        
+logger = logging.getLogger(__name__)
 
 class LoginView(generics.GenericAPIView):
-    serializer_class = LoginSerializer
-    permission_classes = [permissions.AllowAny]
-    
+    serializer_class = UserSerializer
+    permission_classes = []
+
     def post(self, request):
-        username = request.data.get(settings.USERNAME_FIELD)
-        password = request.data.get('password')
-        
-        user = authenticate(request, username=username, password=password)
-        if user:
-            # Check if vendor is verified
+        try:
+            email = request.data.get('email')
+            password = request.data.get('password')
+
+            if not email or not password:
+                return Response(
+                    {'detail': 'Email and password required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            user = authenticate(request, username=email, password=password)
+            
+            if not user:
+                return Response(
+                    {'detail': 'Invalid credentials'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
             if user.user_type == 'vendor' and not user.is_verified:
                 return Response(
-                    {'detail': 'Your vendor account is pending verification'},
+                    {'detail': 'Vendor account pending verification'},
                     status=status.HTTP_403_FORBIDDEN
                 )
 
             refresh = RefreshToken.for_user(user)
             return Response({
-                'user': UserSerializer(user).data,
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'user_type': user.user_type
+                },
                 'access_token': str(refresh.access_token),
                 'refresh_token': str(refresh),
-            })
-        return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Login Error: {str(e)}", exc_info=True)
+            return Response(
+                {'detail': 'Authentication service unavailable'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 class IsVendorOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:

@@ -1,3 +1,4 @@
+# middleware.py
 from django.utils.deprecation import MiddlewareMixin
 from django.http import JsonResponse
 from django.conf import settings

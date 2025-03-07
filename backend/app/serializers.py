@@ -21,7 +21,7 @@ User = get_user_model()
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
     confirm_password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
-    full_name = serializers.CharField(write_only=False, required=True)
+    full_name = serializers.CharField(write_only=False, required=True)  # Ensure full_name is required
     phone_number = serializers.CharField(source='phone', required=False, allow_blank=True)
     user_type = serializers.CharField(required=True)
     store_name = serializers.CharField(required=False, allow_blank=True)
@@ -30,11 +30,12 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id', 'username', 'email', 'password', 'confirm_password', 'full_name',
-            'phone_number', 'address', 'user_type', 'store_name',
+            'id', 'username', 'email', 'password', 'confirm_password',
+            'phone_number', 'address', 'user_type', 'store_name','full_name',
             'store_description', 'profile_image', 'is_verified',
             'date_joined'
         )
+        
         read_only_fields = ('id', 'is_verified', 'date_joined')
         extra_kwargs = {
             'email': {'required': True},
@@ -70,32 +71,44 @@ class UserSerializer(serializers.ModelSerializer):
         validated_data.pop('confirm_password')
 
         try:
-            user = User.objects.create(**validated_data) # Remove create_user
+            user = User.objects.create(**validated_data)  # Remove create_user
             # Set full name
             user.full_name = full_name
             user.save()
             return user
 
         except IntegrityError as e:
-            raise serializers.ValidationError({"username": "This email is already registered."}) # Show to front end.
+            raise serializers.ValidationError({"username": "This email is already registered."})
                 
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField(required=True)  # Changed from username to email
-    password = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(
+        required=True,
+        style={'input_type': 'password'},
+        trim_whitespace=False
+    )
 
     def validate(self, data):
-        username = data.get(settings.USERNAME_FIELD)
+        email = data.get('email')
         password = data.get('password')
 
-        if username and password:
-            user = authenticate(request=self.context.get('request'),
-                                username=username, password=password)
-            if not user:
-                msg = 'Unable to log in with provided credentials.'
-                raise serializers.ValidationError(msg, code='authorization')
-        else:
-            msg = 'Must include "username" and "password".'
-            raise serializers.ValidationError(msg, code='authorization')
+        if not email or not password:
+            raise serializers.ValidationError("Email and password are required")
+
+        user = authenticate(
+            request=self.context.get('request'),
+            username=email,
+            password=password
+        )
+
+        if not user:
+            raise serializers.ValidationError("Invalid credentials")
+
+        if not user.is_active:
+            raise serializers.ValidationError("Account disabled")
+
+        if not hasattr(user, 'user_type') or not hasattr(user, 'is_verified'):
+            raise serializers.ValidationError("System configuration error")
 
         data['user'] = user
         return data

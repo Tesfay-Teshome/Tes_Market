@@ -1,54 +1,30 @@
-import { createContext, useContext } from 'react';
-import axios from 'axios';
+import { useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { authAPI } from '@/services/api';
+import { setUser, setLoading } from '@/store/slices/authSlice';
 
-interface User {
-  id: number;
-  email: string;
-  user_type: 'buyer' | 'vendor' | 'administrator';
-  full_name: string;
-  is_verified?: boolean;
-}
+export const useAuth = () => {
+  const dispatch = useDispatch();
 
-interface AuthContextType {
-  user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  isAuthenticated: boolean;
-}
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('access_token');
 
-const AuthContext = createContext<AuthContextType | null>(null);
+      if (!token) {
+        dispatch(setLoading(false));
+        return;
+      }
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-}
+      try {
+        const response = await authAPI.getCurrentUser();
+        dispatch(setUser(response.data));
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      } finally {
+        dispatch(setLoading(false));
+      }
+    };
 
-export async function login(email: string, password: string): Promise<User> {
-  try {
-    const response = await axios.post('/auth/login/', {
-      email,
-      password,
-    });
-
-    if (response.data.access_token) {
-      localStorage.setItem('authToken', response.data.access_token);
-      return response.data.user;
-    }
-    throw new Error('Login failed: No access token received');
-  } catch (err: any) {
-    if (err.response?.data?.detail) {
-      throw new Error(err.response.data.detail);
-    }
-    throw new Error('Invalid email or password');
-  }
-}
-
-export function logout() {
-  localStorage.removeItem('authToken');
-  window.location.href = '/auth/login';
-}
-
-export default AuthContext;
+    checkAuth();
+  }, [dispatch]);
+};

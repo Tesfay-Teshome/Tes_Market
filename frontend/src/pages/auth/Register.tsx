@@ -1,445 +1,338 @@
+// src/pages/auth/Register.tsx
+
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import axios from '../../utils/axios';  // Use our configured axios instance
-import { FcGoogle } from 'react-icons/fc';
-import { FaFacebook } from 'react-icons/fa';
-import { Upload, X, ShoppingBag, Store } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthProvider';
-import { AuthResponse } from '../../api/auth';
-import toast from 'react-hot-toast';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useNavigate, Link } from 'react-router-dom';
+import { ShoppingBag, User, Mail, Lock, Store, ArrowRight } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { authAPI } from '@/services/api';
+import FadeIn from '@/components/animations/FadeIn';
 
-interface RegisterFormData {
-    fullName: string;
-    email: string;
-    password: string;
-    confirmPassword: string;
-    phoneNumber?: string;
-    address?: string;
-    userType: 'buyer' | 'seller';
-    storeName?: string;
-    storeDescription?: string;
-    termsAccepted: boolean;
-    profileImage?: FileList;
-}
+const registerSchema = z.object({
+  full_name: z.string().min(1, 'Full name is required'), // Full name field
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  confirm_password: z.string(), // Confirm password field
+  user_type: z.enum(['buyer', 'vendor']),
+  store_name: z.string().optional(),
+  store_description: z.string().optional(),
+}).refine((data) => data.password === data.confirm_password, {
+  message: "Passwords don't match",
+  path: ["confirm_password"],
+}).refine(
+  (data) => {
+    if (data.user_type === 'vendor') {
+      return !!data.store_name && !!data.store_description;
+    }
+    return true;
+  },
+  {
+    message: "Store information is required for vendors",
+    path: ["store_name"],
+  }
+);
 
-const Register: React.FC = () => {
-    const [error, setError] = useState<string>('');
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const navigate = useNavigate();
-    const { register, handleSubmit, watch, formState: { errors }, setValue, reset } = useForm<RegisterFormData>({
-        defaultValues: {
-            userType: 'buyer'
+type RegisterFormData = z.infer<typeof registerSchema>;
+
+const Register = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [userType, setUserType] = useState<'buyer' | 'vendor'>('buyer');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      user_type: 'buyer',
+    },
+  });
+
+  const onSubmit = async (data: RegisterFormData) => {
+    try {
+      setIsSubmitting(true);
+      
+      // Do not remove confirm_password, send the full data to the backend
+      await authAPI.register(data);
+
+      toast({
+        title: 'Registration successful',
+        description: userType === 'vendor' 
+          ? 'Your vendor account is pending approval. We will notify you once approved.'
+          : 'Please login with your credentials.',
+      });
+
+      navigate('/login');
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      
+      if (error.response?.data) {
+        const backendErrors = error.response.data;
+        
+        if (typeof backendErrors === 'object') {
+          const errorMessages = Object.entries(backendErrors)
+            .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+            .join('\n');
+            
+          toast({
+            title: 'Registration failed',
+            description: errorMessages,
+            variant: 'destructive',
+          });
+        } else {
+          toast({
+            title: 'Registration failed',
+            description: error.response.data.detail || 'An error occurred during registration.',
+            variant: 'destructive',
+          });
         }
-    });
-    const { login } = useAuth(); // Get login function from AuthProvider
-    const password = watch('password');
+      } else {
+        toast({
+          title: 'Registration failed',
+          description: 'An unexpected error occurred. Please try again later.',
+          variant: 'destructive',
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-            setValue('profileImage', event.target.files as FileList);
-        }
-    };
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
+      <FadeIn>
+        <div className="max-w-xl w-full bg-white rounded-2xl shadow-xl p-8">
+          <div className="text-center">
+            <Link to="/" className="flex items-center justify-center text-blue-600 mb-8">
+              <ShoppingBag className="h-12 w-12" />
+            </Link>
+            <h2 className="text-3xl font-extrabold text-gray-900 mb-2">
+              Create your account
+            </h2>
+            <p className="text-gray-600 mb-8">
+              Join our marketplace and start {userType === 'vendor' ? 'selling' : 'shopping'}
+            </p>
+          </div>
 
-    const removeImage = () => {
-        setImagePreview(null);
-        setValue('profileImage', undefined);
-    };
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setUserType('buyer')}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  userType === 'buyer'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-blue-200'
+                }`}
+              >
+                <User className={`h-6 w-6 mx-auto mb-2 ${
+                  userType === 'buyer' ? 'text-blue-500' : 'text-gray-400'
+                }`} />
+                <p className={`text-sm font-medium ${
+                  userType === 'buyer' ? 'text-blue-500' : 'text-gray-500'
+                }`}>
+                  Buyer Account
+                </p>
+              </button>
 
-    const getDashboardPath = (userType: string) => {
-        switch (userType) {
-            case 'seller':
-                return '/vendor/dashboard';
-            case 'buyer':
-                return '/buyer/dashboard';
-            default:
-                return '/';
-        }
-    };
-
-    const onSubmit = async (data: RegisterFormData) => {
-        try {
-            setError('');
-
-            const formData = new FormData();
-            formData.append('email', data.email);
-            formData.append('password', data.password);
-            formData.append('confirm_password', data.confirmPassword);
-            formData.append('full_name', data.fullName);
-            formData.append('user_type', data.userType === 'seller' ? 'vendor' : 'buyer');
-            if (data.phoneNumber) formData.append('phone_number', data.phoneNumber);
-            if (data.address) formData.append('address', data.address);
-
-            if (data.userType === 'seller') {
-                if (!data.storeName) {
-                    setError('Store name is required for vendors');
-                    return;
-                }
-                formData.append('store_name', data.storeName);
-                if (data.storeDescription) {
-                    formData.append('store_description', data.storeDescription);
-                }
-            }
-
-            if (data.profileImage?.[0]) {
-                formData.append('profile_image', data.profileImage[0]);
-            }
-
-            // Attempt registration
-            const registerResponse = await axios.post('/auth/register/', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
-            const { email, password } = data;
-            if (registerResponse.status === 201) {
-                try {
-                    await login(email, password);
-
-                    const userType = data.userType === 'seller' ? 'vendor' : 'buyer';
-                    // Successful login, redirect based on user type
-                    toast.success('Registration and login successful!');
-                    reset(); // Reset the form
-                    navigate(getDashboardPath(userType));
-
-                } catch (err: any) {
-                    console.error('Login error after registration:', err);
-                    setError(err.message || 'Login failed after registration.');
-                }
-            }
-            else {
-                setError('Registration failed.');
-            }
-
-        } catch (err: any) {
-            console.error('Registration error:', err);
-            if (err.response?.data?.username) {
-                // Handle "This email is already registered." error from backend
-                setError(err.response.data.username[0]);
-            } else {
-                setError(err.message || 'An error occurred during registration');
-            }
-        }
-    };
-
-
-    const handleGoogleLogin = () => {
-        window.location.href = '/api/auth/google/register/';
-    };
-
-    const handleFacebookLogin = () => {
-        window.location.href = '/api/auth/facebook/register/';
-    };
-
-    return (
-        <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
-            {/* Animated background elements */}
-            <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute -top-40 -right-40 w-80 h-80 bg-green-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-                <div className="absolute top-0 -left-20 w-72 h-72 bg-blue-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-                <div className="absolute -bottom-40 right-20 w-72 h-72 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+              <button
+                type="button"
+                onClick={() => setUserType('vendor')}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  userType === 'vendor'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-200 hover:border-blue-200'
+                }`}
+              >
+                <Store className={`h-6 w-6 mx-auto mb-2 ${
+                  userType === 'vendor' ? 'text-blue-500' : 'text-gray-400'
+                }`} />
+                <p className={`text-sm font-medium ${
+                  userType === 'vendor' ? 'text-blue-500' : 'text-gray-500'
+                }`}>
+                  Vendor Account
+                </p>
+              </button>
             </div>
 
-            <div className="relative w-full max-w-md px-6 animate-fade-in">
-                <div className="auth-container bg-white/90">
-                    <div className="text-center mb-8">
-                        <h2 className="text-4xl font-bold text-gradient mb-3 text-shadow-lg">Create Account</h2>
-                        <p className="text-lg text-gray-600 font-medium">Join our community today</p>
-                    </div>
+            <input
+              type="hidden"
+              {...register('user_type')}
+              value={userType}
+            />
 
-                    {error && (
-                        <div className="mb-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-lg animate-fade-in">
-                            <p className="font-medium">{error}</p>
-                        </div>
-                    )}
+            <div>
+              <div className="relative">
+                <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                <input
+                  {...register('full_name')}
+                  placeholder="Full Name"
+                  className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+              {errors.full_name && (
+                <p className="mt-1 text-sm text-red-600">{errors.full_name.message}</p>
+              )}
+            </div>
 
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 animate-fade-in-delay">
-                        {/* Profile Image Upload */}
-                        <div className="flex justify-center mb-8">
-                            <div className="relative group">
-                                <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-blue-500 transition-colors duration-200 shadow-lg">
-                                    {imagePreview ? (
-                                        <>
-                                            <img
-                                                src={imagePreview}
-                                                alt="Profile preview"
-                                                className="w-full h-full object-cover"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={removeImage}
-                                                className="absolute top-0 right-0 bg-red-500 text-white p-1.5 rounded-full transform translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-lg"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </button>
-                                        </>
-                                    ) : (
-                                        <div className="text-center">
-                                            <Upload className="mx-auto h-10 w-10 text-gray-400" />
-                                            <p className="mt-2 text-sm font-medium text-gray-500">Upload Photo</p>
-                                        </div>
-                                    )}
-                                </div>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageChange}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                />
-                            </div>
-                        </div>
+            <div>
+              <div className="relative">
+                <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                <input
+                  {...register('username')}
+                  placeholder="Username"
+                  className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+              {errors.username && (
+                <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
+              )}
+            </div>
 
-                        {/* User Type Selection */}
-                        <div className="grid grid-cols-2 gap-4 mb-8">
-                            <label className={`
-                flex flex-col items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg
-                ${watch('userType') === 'buyer'
-                                    ? 'border-blue-500 bg-blue-50'
-                                    : 'border-gray-200 hover:border-blue-200'}
-              `}>
-                                <input
-                                    type="radio"
-                                    value="buyer"
-                                    {...register('userType')}
-                                    className="sr-only"
-                                />
-                                <ShoppingBag className={`h-8 w-8 mb-2 ${watch('userType') === 'buyer' ? 'text-blue-500' : 'text-gray-400'}`} />
-                                <span className={`font-semibold ${watch('userType') === 'buyer' ? 'text-blue-700' : 'text-gray-700'}`}>
-                                    Buyer
-                                </span>
-                            </label>
-
-                            <label className={`
-                flex flex-col items-center p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg
-                ${watch('userType') === 'seller'
-                                    ? 'border-blue-500 bg-blue-50'
-                                    : 'border-gray-200 hover:border-blue-200'}
-              `}>
-                                <input
-                                    type="radio"
-                                    value="seller"
-                                    {...register('userType')}
-                                    className="sr-only"
-                                />
-                                <Store className={`h-8 w-8 mb-2 ${watch('userType') === 'seller' ? 'text-blue-500' : 'text-gray-400'}`} />
-                                <span className={`font-semibold ${watch('userType') === 'seller' ? 'text-blue-700' : 'text-gray-700'}`}>
-                                    Seller
-                                </span>
-                            </label>
-                        </div>
-
-                        {/* Form Fields */}
-                        <div className="space-y-6">
-                            <div className="space-y-2">
-                                <label htmlFor="fullName" className="auth-label">
-                                    Full Name
-                                </label>
-                                <input
-                                    type="text"
-                                    {...register('fullName', { required: 'Full name is required' })}
-                                    className="auth-input"
-                                    placeholder="John Doe"
-                                />
-                                {errors.fullName && (
-                                    <p className="mt-2 text-sm text-red-600 font-medium">{errors.fullName.message}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <label htmlFor="email" className="auth-label">
-                                    Email address
-                                </label>
-                                <input
-                                    type="email"
-                                    {...register('email', {
-                                        required: 'Email is required',
-                                        pattern: {
-                                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                            message: 'Invalid email address',
-                                        },
-                                    })}
-                                    className="auth-input"
-                                    placeholder="john@example.com"
-                                />
-                                {errors.email && (
-                                    <p className="mt-2 text-sm text-red-600 font-medium">{errors.email.message}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <label htmlFor="password" className="auth-label">
-                                    Password
-                                </label>
-                                <input
-                                    type="password"
-                                    {...register('password', {
-                                        required: 'Password is required',
-                                        minLength: {
-                                            value: 8,
-                                            message: 'Password must be at least 8 characters',
-                                        },
-                                    })}
-                                    className="auth-input"
-                                    placeholder="••••••••"
-                                />
-                                {errors.password && (
-                                    <p className="mt-2 text-sm text-red-600 font-medium">{errors.password.message}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <label htmlFor="confirmPassword" className="auth-label">
-                                    Confirm Password
-                                </label>
-                                <input
-                                    type="password"
-                                    {...register('confirmPassword', {
-                                        validate: value =>
-                                            value === password || 'The passwords do not match',
-                                    })}
-                                    className="auth-input"
-                                    placeholder="••••••••"
-                                />
-                                {errors.confirmPassword && (
-                                    <p className="mt-2 text-sm text-red-600 font-medium">{errors.confirmPassword.message}</p>
-                                )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <label htmlFor="phoneNumber" className="auth-label">
-                                    Phone Number (Optional)
-                                </label>
-                                <input
-                                    type="tel"
-                                    {...register('phoneNumber')}
-                                    className="auth-input"
-                                    placeholder="+1 (555) 000-0000"
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <label htmlFor="address" className="auth-label">
-                                    Address (Optional)
-                                </label>
-                                <textarea
-                                    {...register('address')}
-                                    rows={3}
-                                    className="auth-input"
-                                    placeholder="Enter your address"
-                                />
-                            </div>
-
-                            {watch('userType') === 'seller' && (
-                                <>
-                                    <div className="space-y-2">
-                                        <label htmlFor="storeName" className="auth-label">
-                                            Store Name
-                                        </label>
-                                        <input
-                                            type="text"
-                                            {...register('storeName', { required: 'Store name is required for sellers' })}
-                                            className="auth-input"
-                                            placeholder="Your Store Name"
-                                        />
-                                        {errors.storeName && (
-                                            <p className="mt-2 text-sm text-red-600 font-medium">{errors.storeName.message}</p>
-                                        )}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label htmlFor="storeDescription" className="auth-label">
-                                            Store Description
-                                        </label>
-                                        <textarea
-                                            {...register('storeDescription')}
-                                            className="auth-input"
-                                            placeholder="Describe your store"
-                                        />
-                                    </div>
-                                </>
-                            )}
-                        </div>
-
-                        {/* Terms and Conditions */}
-                        <div className="flex items-center mt-8">
-                            <input
-                                type="checkbox"
-                                {...register('termsAccepted', {
-                                    required: 'You must accept the terms and conditions',
-                                })}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                            />
-                            <label htmlFor="termsAccepted" className="ml-2 text-sm text-gray-700 font-medium">
-                                I agree to the{' '}
-                                <Link to="/auth/terms" className="text-blue-600 hover:text-blue-800">
-                                    Terms of Service
-                                </Link>{' '}
-                                and{' '}
-                                <Link to="/auth/privacy" className="text-blue-600 hover:text-blue-800">
-                                    Privacy Policy
-                                </Link>
-                            </label>
-                        </div>
-                        {errors.termsAccepted && (
-                            <p className="mt-2 text-sm text-red-600 font-medium">{errors.termsAccepted.message}</p>
-                        )}
-
-                        {/* Submit Button */}
-                        <button
-                            type="submit"
-                            className="auth-button mt-8"
-                        >
-                            Create Account
-                        </button>
-
-                        <div className="relative my-8">
-                            <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-gray-300"></div>
-                            </div>
-                            <div className="relative flex justify-center text-sm">
-                                <span className="px-4 py-1 bg-white text-gray-500 font-medium rounded-full border border-gray-200">Or continue with</span>
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <button
-                                type="button"
-                                onClick={handleGoogleLogin}
-                                className="social-auth-button"
-                            >
-                                <FcGoogle className="text-xl mr-2" />
-                                Google
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleFacebookLogin}
-                                className="social-auth-button"
-                            >
-                                <FaFacebook className="text-xl mr-2 text-blue-600" />
-                                Facebook
-                            </button>
-                        </div>
-                    </form>
-
-                    <p className="mt-10 text-center text-gray-600">
-                        Already have an account?{' '}
-                        <Link
-                            to="/auth/login"
-                            className="font-semibold text-blue-600 hover:text-blue-800 transition-colors"
-                        >
-                            Sign in
-                        </Link>
-                    </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                  <input
+                    {...register('email')}
+                    type="email"
+                    placeholder="Email address"
+                    className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
                 </div>
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                )}
+              </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                  <input
+                    {...register('password')}
+                    type="password"
+                    placeholder="Password"
+                    className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                </div>
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+                )}
+              </div>
+
+              <div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                  <input
+                    {...register('confirm_password')}
+                    type="password"
+                    placeholder="Confirm password"
+                    className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                </div>
+                {errors.confirm_password && (
+                  <p className="mt-1 text-sm text-red-600">{errors.confirm_password.message}</p>
+                )}
+              </div>
+            </div>
+
+            {userType === 'vendor' && (
+              <div className="space-y-6">
+                <div>
+                  <div className="relative">
+                    <Store className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                    <input
+                      {...register('store_name')}
+                      placeholder="Store name"
+                      className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    />
+                  </div>
+                  {errors.store_name && (
+                    <p className="mt-1 text-sm text-red-600">{errors.store_name.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <textarea
+                    {...register('store_description')}
+                    rows={3}
+                    placeholder="Store description"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                  {errors.store_description && (
+                    <p className="mt-1 text-sm text-red-600">{errors.store_description.message}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isSubmitting ? (
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <>
+                  Create account
+                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </button>
+
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                Already have an account?{' '}
+                <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
+                  Sign in
+                </Link>
+              </p>
+            </div>
+          </form>
+
+          <div className="mt-8">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                <img
+                  className="h-5 w-5"
+                  src="https://www.svgrepo.com/show/475656/google-color.svg"
+                  alt="Google"
+                />
+              </button>
+              <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                <img
+                  className="h-5 w-5"
+                  src="https://www.svgrepo.com/show/475647/facebook-color.svg"
+                  alt="Facebook"
+                />
+              </button>
+            </div>
+          </div>
         </div>
-    );
+      </FadeIn>
+    </div>
+  );
 };
 
 export default Register;

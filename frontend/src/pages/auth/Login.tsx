@@ -1,161 +1,217 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthProvider';
-import { FcGoogle } from 'react-icons/fc';
-import { FaFacebook } from 'react-icons/fa';
+// src/pages/auth/Login.tsx
 
-export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { ShoppingBag, Mail, Lock, ArrowRight } from 'lucide-react';
+import { authAPI } from '@/services/api';
+import { setUser } from '@/store/slices/authSlice';
+import { useToast } from '@/components/ui/use-toast';
+import FadeIn from '@/components/animations/FadeIn';
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+// Update the Zod schema
+const loginSchema = z.object({
+  email: z.string().min(1, 'Email is required').email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
 
-    // Log the form data
-    console.log("Form data:", { email, password });
+type LoginFormData = z.infer<typeof loginSchema>;
 
+const Login = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const dispatch = useDispatch();
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const from = location.state?.from?.pathname || '/';
+  
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
     try {
-      await login(email, password);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during login');
+      setIsSubmitting(true);
+      const response = await authAPI.login({email: data.email, password: data.password });
+      const { user, access_token, refresh_token } = response.data;
+      
+      localStorage.setItem('access_token', access_token);
+      localStorage.setItem('refresh_token', refresh_token);
+      dispatch(setUser(user));
+      
+      toast({
+        title: 'Welcome back!',
+        description: 'You have successfully logged in.',
+      });
+
+      // Redirect based on user type or back to the page they came from
+      if (from !== '/') {
+        navigate(from);
+      } else {
+        switch (user.user_type) {
+          case 'administrator':
+            navigate('/administrator');
+            break;
+          case 'vendor':
+            navigate('/vendor');
+            break;
+          default:
+            navigate('/');
+        }
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      
+      // Handle different types of errors
+      if (error.response?.data) {
+        toast({
+          title: 'Login failed',
+          description: error.response.data.detail || 'Invalid username or password.',
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Login failed',
+          description: 'An unexpected error occurred. Please try again later.',
+          variant: 'destructive',
+        });
+      }
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const handleGoogleLogin = () => {
-    window.location.href = '/api/auth/google/';
-  };
-
-  const handleFacebookLogin = () => {
-    window.location.href = '/api/auth/facebook/';
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
-        <div className="absolute top-0 -right-20 w-72 h-72 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-40 left-20 w-72 h-72 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
-      </div>
-
-      <div className="relative w-full max-w-md px-6 animate-fade-in">
-        <div className="auth-container bg-white/90">
-          <div className="text-center mb-8">
-            <h2 className="text-4xl font-bold text-gradient mb-3 text-shadow-lg">Welcome Back</h2>
-            <p className="text-lg text-gray-600 font-medium">Sign in to your account</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4 sm:px-6 lg:px-8">
+      <FadeIn>
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+          <div className="text-center">
+            <Link to="/" className="flex items-center justify-center text-blue-600 mb-8">
+              <ShoppingBag className="h-12 w-12" />
+            </Link>
+            <h2 className="text-3xl font-extrabold text-gray-900 mb-2">
+              Welcome Back
+            </h2>
+            <p className="text-gray-600 mb-8">
+              Sign in to your account to continue
+            </p>
           </div>
 
-          {error && (
-            <div className="mb-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-lg animate-fade-in">
-              <p className="font-medium">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in-delay">
-            <div className="space-y-2">
-              <label htmlFor="email" className="auth-label">
-                Email address
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="auth-input"
-                placeholder="Enter your email"
-              />
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+            <div>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                <input
+                  {...register('email')}
+                  placeholder="Email"
+                  className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="password" className="auth-label">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="auth-input"
-                placeholder="Enter your password"
-              />
+            <div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                <input
+                  {...register('password')}
+                  type="password"
+                  placeholder="Password"
+                  className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+              </div>
+              {errors.password && (
+                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+              )}
             </div>
 
-            <div className="flex items-center justify-between text-sm mt-6">
+            <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <input
                   id="remember-me"
+                  name="remember-me"
                   type="checkbox"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label htmlFor="remember-me" className="ml-2 text-gray-700 font-medium">
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                   Remember me
                 </label>
               </div>
-              <Link
-                to="/auth/forgot-password"
-                className="text-blue-600 hover:text-blue-800 transition-colors font-medium"
-              >
+
+              <Link to="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-500">
                 Forgot password?
               </Link>
             </div>
 
             <button
               type="submit"
-              disabled={isLoading}
-              className="auth-button mt-8"
+              disabled={isSubmitting}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isSubmitting ? (
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <>
+                  Sign in
+                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
             </button>
 
-            <div className="relative my-8">
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                Don't have an account?{' '}
+                <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+                  Create one now
+                </Link>
+              </p>
+            </div>
+          </form>
+
+          <div className="mt-8">
+            <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 py-1 bg-white text-gray-500 font-medium rounded-full border border-gray-200">Or continue with</span>
+                <span className="px-2 bg-white text-gray-500">Or continue with</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                type="button"
-                onClick={handleGoogleLogin}
-                className="social-auth-button"
-              >
-                <FcGoogle className="text-xl mr-2" />
-                Google
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                <img
+                  className="h-5 w-5"
+                  src="https://www.svgrepo.com/show/475656/google-color.svg"
+                  alt="Google"
+                />
               </button>
-              <button
-                type="button"
-                onClick={handleFacebookLogin}
-                className="social-auth-button"
-              >
-                <FaFacebook className="text-xl mr-2 text-blue-600" />
-                Facebook
+              <button className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                <img
+                  className="h-5 w-5"
+                  src="https://www.svgrepo.com/show/475647/facebook-color.svg"
+                  alt="Facebook"
+                />
               </button>
             </div>
-          </form>
-
-          <p className="mt-10 text-center text-gray-600">
-            Don't have an account?{' '}
-            <Link
-              to="/auth/register"
-              className="font-semibold text-blue-600 hover:text-blue-800 transition-colors"
-            >
-              Sign up
-            </Link>
-          </p>
+          </div>
         </div>
-      </div>
+      </FadeIn>
     </div>
   );
-}
+};
+
+export default Login;

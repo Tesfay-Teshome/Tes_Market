@@ -12,6 +12,7 @@ class User(AbstractUser):
     )
     
     user_type = models.CharField(max_length=15, choices=USER_TYPE_CHOICES, default='buyer')
+    full_name = models.CharField(max_length=255, default='')
     phone = models.CharField(max_length=15, blank=True)
     address = models.TextField(blank=True)
     profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
