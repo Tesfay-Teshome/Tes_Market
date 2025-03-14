@@ -167,7 +167,7 @@ const ManageCategories = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {categories?.map((category) => (
+            {Array.isArray(categories) ? categories.map((category) => (
               <tr key={category.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
@@ -199,7 +199,7 @@ const ManageCategories = () => {
                   </button>
                 </td>
               </tr>
-            ))}
+            )) : null}
           </tbody>
         </table>
       </div>
@@ -246,7 +246,7 @@ const ManageCategories = () => {
                   className="w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="">None</option>
-                  {categories?.map((category) => (
+                  {Array.isArray(categories) ? categories.map((category) => (
                     <option 
                       key={category.id} 
                       value={category.id}
@@ -254,7 +254,7 @@ const ManageCategories = () => {
                     >
                       {category.name}
                     </option>
-                  ))}
+                  )) : null}
                 </select>
               </div>
               

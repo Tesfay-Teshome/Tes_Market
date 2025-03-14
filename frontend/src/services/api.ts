@@ -1,24 +1,77 @@
-// src/services/api.ts
-
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { store } from '@/store';
 import { logout } from '@/store/slices/authSlice';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
+
+// Function to get CSRF token from cookies
+const getCsrfToken = () => {
+  const tokenRow = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
+  return tokenRow ? tokenRow.split('=')[1] : ''; // Return empty string if token is not found
+};
+
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api') as string;
+
+// Extend AxiosInstance to include custom methods
+interface CustomAxiosInstance extends AxiosInstance {
+  createCategory: (data: FormData) => Promise<any>;
+  getCategories: () => Promise<any>;
+  // Add other custom methods if needed
+}
+
+// Create the axios instance
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
+      'X-CSRFToken': (getCsrfToken() || ''),
   },
-});
+}) as CustomAxiosInstance;
+
+// Implement the createCategory method
+api.createCategory = async (data: FormData) => {
+  const csrfToken = getCsrfToken(); // Retrieve CSRF token
+  return await api.post('/admin/categories/', data, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      'X-CSRFToken': csrfToken,
+    },
+  }).catch(error => {
+    console.error('Error adding category:', error.response ? error.response.data : error.message);
+    throw error; // Rethrow the error for further handling
+  });
+};
+
+
+api.getCategories = async () => {
+  return await api.get('/admin/categories/').catch(error => {
+    console.error('Error fetching categories:', error.response ? error.response.data : error.message);
+    throw error;
+  });
+};
+
+// Request interceptor
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token');
+    // Add token to headers if it exists
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 // Request interceptor
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token || ''}` as string;
     }
     return config;
   },
@@ -31,25 +84,21 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If the error status is 401 and there is no originalRequest._retry flag,
-    // it means the token has expired and we need to refresh it
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
         const refreshToken = localStorage.getItem('refresh_token');
-        const response = await axios.post(`${API_URL}/token/refresh/`, {
+        const response = await axios.post(`${API_URL}/auth/token/refresh/`, {
           refresh: refreshToken,
         });
 
         const { access } = response.data;
         localStorage.setItem('access_token', access);
 
-        // Retry the original request with the new token
-        originalRequest.headers.Authorization = `Bearer ${access}`;
+        originalRequest.headers.Authorization = `Bearer ${access || ''}` as string;
         return api(originalRequest);
       } catch (error) {
-        // If refresh token fails, logout the user
         store.dispatch(logout());
         return Promise.reject(error);
       }
@@ -59,20 +108,72 @@ api.interceptors.response.use(
   }
 );
 
+// Define the AuthResponse type
+interface AuthResponse {
+  user: any;
+  access_token: string;
+  refresh_token: string;
+}
+
 // Auth API
+export type RegisterData = {
+  username: string;
+  email: string;
+  password: string;
+  confirm_password: string;
+  user_type: 'buyer' | 'vendor';
+  store_name?: string;
+  store_description?: string;
+};
+
 export const authAPI = {
-  register: (userData: any) =>
-    api.post('/auth/register/', userData),
+  register: (data: RegisterData) => 
+    axios.post('http://localhost:8000/api/auth/register/', data),
   
-  // Change this line
-  login: (credentials: { email: string; password: string }) =>
-    api.post('/auth/login/', credentials),
+  login: (data: { email: string; password: string }) => 
+    axios.post<AuthResponse>('http://localhost:8000/api/auth/login/', data),
   
+  refreshToken: () => {
+  const refreshToken = localStorage.getItem('refresh_token'); // Ensure this key is correct
+  if (!refreshToken) {
+    console.error('No refresh token found');
+    return Promise.reject(new Error('No refresh token found'));
+  }
+  console.log('Refreshing token with payload:', { refresh: refreshToken });
+  return axios.post('http://localhost:8000/api/auth/token/refresh/', { refresh: refreshToken });
+},
   getCurrentUser: () =>
     api.get('/auth/user/'),
   
   updateProfile: (data: any) =>
-    api.patch('/auth/user/', data),
+    api.patch('/auth/profile/', data),
+  
+  updateProfileImage: (formData: FormData) =>
+    api.patch('/auth/profile/image/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
+  
+  updatePassword: (data: { current_password: string; new_password: string }) =>
+    api.post('/auth/password/change/', data),
+  
+  updateNotificationSettings: (data: any) =>
+    api.patch('/auth/notifications/settings/', data),
+  
+  createCategory: (data: FormData) => {
+    const csrfToken = getCsrfToken(); // Retrieve CSRF token
+    return axios.post('http://localhost:8000/api/admin/categories/', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'X-CSRFToken': csrfToken,
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`, // Include the Authorization header
+      },
+    }).catch(error => {
+      console.error('Error adding category:', error.response ? error.response.data : error.message);
+      throw error; // Rethrow the error for further handling
+    });
+  },
 };
 
 // Products API
@@ -86,14 +187,25 @@ export const productsAPI = {
   getFeatured: () =>
     api.get('/products/featured/'),
   
-  create: (data: any) =>
-    api.post('/products/', data),
+  create: (data: FormData) =>
+    api.post('/products/', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
   
-  update: (id: string, data: any) =>
-    api.patch(`/products/${id}/`, data),
+  update: (id: string, data: FormData) =>
+    api.patch(`/products/${id}/`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
   
   delete: (id: string) =>
     api.delete(`/products/${id}/`),
+  
+  requestApproval: (id: string) =>
+    api.post(`/products/${id}/request_approval/`),
 };
 
 // Categories API
@@ -104,14 +216,22 @@ export const categoriesAPI = {
   getBySlug: (slug: string) =>
     api.get(`/categories/${slug}/`),
   
-  create: (data: any) =>
-    api.post('/categories/', data),
+  create: (data: FormData) =>
+    api.post('/categories/', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
   
-  update: (slug: string, data: any) =>
-    api.patch(`/categories/${slug}/`, data),
+  update: (id: string, data: FormData) =>
+    api.patch(`/categories/${id}/`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
   
-  delete: (slug: string) =>
-    api.delete(`/categories/${slug}/`),
+  delete: (id: string) =>
+    api.delete(`/categories/${id}/`),
 };
 
 // Cart API
@@ -119,19 +239,17 @@ export const cartAPI = {
   get: () =>
     api.get('/cart/'),
   
-  addItem: (productId: string, quantity: number = 1, variantId?: string) => {
-    const data: any = { product: productId, quantity };
-    if (variantId) {
-      data.variant = variantId;
-    }
-    return api.post('/cart/add_item/', data);
-  },
+  addItem: (productId: string, quantity: number = 1) =>
+    api.post('/cart/items/', { product_id: productId, quantity }),
   
   updateItem: (id: string, data: any) =>
     api.patch(`/cart/items/${id}/`, data),
   
   removeItem: (id: string) =>
     api.delete(`/cart/items/${id}/`),
+  
+  clear: () =>
+    api.delete('/cart/'),
 };
 
 // Orders API
@@ -146,7 +264,7 @@ export const ordersAPI = {
     api.post('/orders/', data),
   
   updateStatus: (id: string, status: string) =>
-    api.patch(`/orders/${id}/update_status/`, { status }),
+    api.patch(`/orders/${id}/status/`, { status }),
 };
 
 // Wishlist API
@@ -155,7 +273,7 @@ export const wishlistAPI = {
     api.get('/wishlist/'),
   
   addItem: (productId: string) =>
-    api.post('/wishlist/add_item/', { product: productId }),
+    api.post('/wishlist/items/', { product_id: productId }),
   
   removeItem: (id: string) =>
     api.delete(`/wishlist/items/${id}/`),
@@ -181,101 +299,161 @@ export const vendorAPI = {
   getDashboard: () =>
     api.get('/vendor/dashboard/'),
   
-  getProducts: () =>
-    api.get('/vendor/products/'),
+  getProducts: (params?: any) =>
+    api.get('/vendor/products/', { params }),
   
-  getOrders: () =>
-    api.get('/vendor/orders/'),
+  getOrders: (params?: any) =>
+    api.get('/vendor/orders/', { params }),
   
-  getEarnings: () =>
-    api.get('/vendor/earnings/'),
+  getEarnings: (params?: any) =>
+    api.get('/vendor/earnings/', { params }),
   
   updateOrderStatus: (orderId: string, status: string) =>
-    api.patch(`/vendor/orders/${orderId}/`, { status }),
+    api.patch(`/vendor/orders/${orderId}/status/`, { status }),
   
-  getAnalytics: () =>
-    api.get('/vendor/analytics/'),
+  getAnalytics: (params?: any) =>
+    api.get('/vendor/analytics/', { params }),
+  
+  getNotifications: () =>
+    api.get('/vendor/notifications/'),
+  
+  markNotificationAsRead: (id: string) =>
+    api.patch(`/vendor/notifications/${id}/read/`),
+  
+  getMessages: () =>
+    api.get('/vendor/messages/'),
+  
+  sendMessage: (data: any) =>
+    api.post('/vendor/messages/', data),
 };
 
 // Administrator API
 export const adminAPI = {
   getDashboard: () =>
-    api.get('/administrator/dashboard/'),
+    api.get('/admin/dashboard/'),
   
   getMetrics: () =>
-    api.get('/administrator/dashboard/metrics/'),
+    api.get('/admin/metrics/'),
   
-  getPendingVendors: () =>
-    api.get('/administrator/dashboard/pending_vendors/'),
+  getUsers: (params?: any) =>
+    api.get('/admin/users/', { params }),
+  
+  updateUser: (id: string, data: any) =>
+    api.patch(`/admin/users/${id}/`, data),
+  
+  deleteUser: (id: string) =>
+    api.delete(`/admin/users/${id}/`),
+  
+  getVendors: (params?: any) =>
+    api.get('/admin/vendors/', { params }),
   
   approveVendor: (id: string) =>
-    api.post(`/administrator/dashboard/approve_vendor/${id}/`),
+    api.post(`/admin/vendors/${id}/approve/`),
   
-  rejectVendor: (id: string) =>
-    api.post(`/administrator/dashboard/reject_vendor/${id}/`),
+  rejectVendor: (id: string, reason: string) =>
+    api.post(`/admin/vendors/${id}/reject/`, { reason }),
   
-  getPendingProducts: () =>
-    api.get('/administrator/dashboard/pending_products/'),
+  getProducts: (params?: any) =>
+    api.get('/admin/products/', { params }),
   
   approveProduct: (id: string) =>
-    api.post(`/administrator/dashboard/approve_product/${id}/`),
+    api.post(`/admin/products/${id}/approve/`),
   
-  rejectProduct: (id: string, note: string) =>
-    api.post(`/administrator/dashboard/reject_product/${id}/`, { note }),
-  
-  getUsers: (search?: string) =>
-    api.get('/admin/users/', { params: { search } }),
-  
-  updateUserStatus: (userId: string, isActive: boolean) =>
-    api.patch(`/admin/users/${userId}/`, { is_active: isActive }),
+  rejectProduct: (id: string, reason: string) =>
+    api.post(`/admin/products/${id}/reject/`, { reason }),
   
   getCategories: () =>
     api.get('/admin/categories/'),
   
-  createCategory: (data: any) =>
-    api.post('/admin/categories/', data),
-  
-  updateCategory: (id: string, data: any) =>
-    api.patch(`/admin/categories/${id}/`, data),
+  updateCategory: (id: string, data: FormData) =>
+    api.patch(`/admin/categories/${id}/`, data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
   
   deleteCategory: (id: string) =>
     api.delete(`/admin/categories/${id}/`),
   
-  getTransactions: (search?: string) =>
-    api.get('/admin/transactions/', { params: { search } }),
+  getTransactions: (params?: any) =>
+    api.get('/admin/transactions/', { params }),
   
   approveTransaction: (id: string) =>
-    api.patch(`/admin/transactions/${id}/approve/`),
+    api.post(`/admin/transactions/${id}/approve/`),
   
-  rejectTransaction: (id: string) =>
-    api.patch(`/admin/transactions/${id}/reject/`),
+  rejectTransaction: (id: string, reason: string) =>
+    api.post(`/admin/transactions/${id}/reject/`, { reason }),
+  
+  getNotifications: () =>
+    api.get('/admin/notifications/'),
+  
+  markNotificationAsRead: (id: string) =>
+    api.patch(`/admin/notifications/${id}/read/`),
+  
+  getMessages: () =>
+    api.get('/admin/messages/'),
+  
+  sendMessage: (data: any) =>
+    api.post('/admin/messages/', data),
+  
+  getSystemSettings: () =>
+    api.get('/admin/settings/'),
+  
+  updateSystemSettings: (data: any) =>
+    api.patch('/admin/settings/', data),
+  
+  getAuditLogs: (params?: any) =>
+    api.get('/admin/audit-logs/', { params }),
+};
+
+// Messages API
+export const messagesAPI = {
+  getAll: () =>
+    api.get('/messages/'),
+  
+  getById: (id: string) =>
+    api.get(`/messages/${id}/`),
+  
+  create: (data: any) =>
+    api.post('/messages/', data),
+  
+  markAsRead: (id: string) =>
+    api.patch(`/messages/${id}/read/`),
+  
+  delete: (id: string) =>
+    api.delete(`/messages/${id}/`),
+};
+
+// Notifications API
+export const notificationsAPI = {
+  getAll: () =>
+    api.get('/notifications/'),
+  
+  markAsRead: (id: string) =>
+    api.patch(`/notifications/${id}/read/`),
+  
+  markAllAsRead: () =>
+    api.post('/notifications/mark-all-read/'),
+  
+  delete: (id: string) =>
+    api.delete(`/notifications/${id}/`),
+  
+  getSettings: () =>
+    api.get('/notifications/settings/'),
+  
+  updateSettings: (data: any) =>
+    api.patch('/notifications/settings/', data),
 };
 
 // Testimonials API
 export const testimonialsAPI = {
-  getAll: () =>
-    api.get('/testimonials/'),
+  getAll: () => api.get('/testimonials/'),
   
-  create: (data: any) =>
-    api.post('/testimonials/', data),
+  create: (data: any) => api.post('/testimonials/', data),
   
-  update: (id: string, data: any) =>
-    api.patch(`/testimonials/${id}/`, data),
+  update: (id: string, data: any) => api.patch(`/testimonials/${id}/`, data),
   
-  delete: (id: string) =>
-    api.delete(`/testimonials/${id}/`),
-};
-
-// Buyer API
-export const buyerAPI = {
-  getOrders: () =>
-    api.get('/buyer/orders/'),
-  
-  getWishlist: () =>
-    api.get('/buyer/wishlist/'),
-  
-  getCart: () =>
-    api.get('/buyer/cart/'),
+  delete: (id: string) => api.delete(`/testimonials/${id}/`),
 };
 
 export default api;

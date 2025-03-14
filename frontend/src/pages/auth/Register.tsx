@@ -1,6 +1,4 @@
-// src/pages/auth/Register.tsx
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,7 +9,7 @@ import { authAPI } from '@/services/api';
 import FadeIn from '@/components/animations/FadeIn';
 
 const registerSchema = z.object({
-  full_name: z.string().min(1, 'Full name is required'), // Full name field
+  full_name: z.string().min(1, 'Full name is required'),
   username: z.string().min(3, 'Username must be at least 3 characters'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -57,8 +55,6 @@ const Register = () => {
   const onSubmit = async (data: RegisterFormData) => {
     try {
       setIsSubmitting(true);
-      
-      // Do not remove confirm_password, send the full data to the backend
       await authAPI.register(data);
 
       toast({
@@ -71,15 +67,12 @@ const Register = () => {
       navigate('/login');
     } catch (error: any) {
       console.error('Registration error:', error);
-      
       if (error.response?.data) {
         const backendErrors = error.response.data;
-        
         if (typeof backendErrors === 'object') {
           const errorMessages = Object.entries(backendErrors)
             .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
             .join('\n');
-            
           toast({
             title: 'Registration failed',
             description: errorMessages,
@@ -167,32 +160,34 @@ const Register = () => {
               value={userType}
             />
 
-            <div>
-              <div className="relative">
-                <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
-                <input
-                  {...register('full_name')}
-                  placeholder="Full Name"
-                  className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <div className="relative">
+                  <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                  <input
+                    {...register('full_name')}
+                    placeholder="Full Name"
+                    className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                </div>
+                {errors.full_name && (
+                  <p className="mt-1 text-sm text-red-600">{errors.full_name.message}</p>
+                )}
               </div>
-              {errors.full_name && (
-                <p className="mt-1 text-sm text-red-600">{errors.full_name.message}</p>
-              )}
-            </div>
 
-            <div>
-              <div className="relative">
-                <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
-                <input
-                  {...register('username')}
-                  placeholder="Username"
-                  className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
+              <div>
+                <div className="relative">
+                  <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                  <input
+                    {...register('username')}
+                    placeholder="Username"
+                    className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                </div>
+                {errors.username && (
+                  <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
+                )}
               </div>
-              {errors.username && (
-                <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
-              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

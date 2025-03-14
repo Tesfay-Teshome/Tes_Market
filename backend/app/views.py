@@ -53,31 +53,23 @@ class RegisterView(generics.CreateAPIView):
     def perform_create(self, serializer):
         try:
             user = serializer.save()
-
-            # Handle profile image
+            # Handle profile image if needed
             if 'profile_image' in self.request.FILES:
-                profile_image = self.request.FILES['profile_image']
-                user.profile_image.save(profile_image.name, profile_image, save=True)
-
-            # If registering as a vendor, set to unverified by default
+                user.profile_image.save(...)
+            # Set vendor verification status
             if user.user_type == 'vendor':
                 user.is_verified = False
                 user.save()
+        except InterruptedError as e:
+            raise serializers.ValidationError({"email": "This email is already registered."})
         except Exception as e:
-            print(f"Registration error: {e}")
-            return Response(
-                {'detail': 'Registration failed due to a server error.'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-        return Response(
-            {'detail': 'Registration successful.'},
-            status=status.HTTP_201_CREATED
-        )  
+            logger.error(f"Registration error: {str(e)}")
+            raise
         
 logger = logging.getLogger(__name__)
 
 class LoginView(generics.GenericAPIView):
-    serializer_class = UserSerializer
+    serializer_class = LoginSerializer 
     permission_classes = []
 
     def post(self, request):

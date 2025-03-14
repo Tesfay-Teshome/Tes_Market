@@ -1,3 +1,5 @@
+import { ReactNode } from 'react';
+
 export interface User {
   id: string;
   email: string;
@@ -8,8 +10,9 @@ export interface User {
   profile_image?: string;
   store_name?: string;
   store_description?: string;
-  created_at:string;
   is_verified: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Product {
@@ -68,6 +71,7 @@ export interface ProductVariant {
 }
 
 export interface Order {
+  [x: string]: ReactNode | User | OrderItem[];
   id: string;
   user: User;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
@@ -138,19 +142,33 @@ export interface VendorAnalytics {
   total_products_sold: number;
   total_earnings: number;
   platform_fees: number;
+  daily_revenue?: number;
+  monthly_growth?: number;
+  recent_orders?: Order[];
+  top_products?: {
+    id: string;
+    name: string;
+    image: string;
+    total_sales: number;
+    revenue: number;
+  }[];
+  next_payout_date?: string;
+  pending_orders?: number;
+  pending_approvals?: number;
 }
 
 export interface AdminDashboardMetrics {
-  id: string;
-  date: string;
   total_sales: number;
   total_orders: number;
   total_users: number;
   total_vendors: number;
   total_products: number;
-  total_commission: number;
-  pending_approvals: number;
-  pending_payouts: number;
+  pending_vendor_approvals: number;
+  pending_product_approvals: number;
+  pending_transactions: number;
+  reported_issues: number;
+  daily_revenue: number;
+  monthly_growth: number;
 }
 
 export interface Testimonial {
@@ -164,4 +182,56 @@ export interface Testimonial {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface Message {
+  id: string;
+  sender: User;
+  receiver: User;
+  subject: string;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Notification {
+  id: string;
+  user: User;
+  title: string;
+  message: string;
+  type: string;
+  is_read: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotificationSettings {
+  email_notifications: boolean;
+  push_notifications: boolean;
+  sms_notifications: boolean;
+  order_updates: boolean;
+  product_updates: boolean;
+  marketing_emails: boolean;
+}
+
+export interface SystemSettings {
+  site_name: string;
+  site_description: string;
+  maintenance_mode: boolean;
+  platform_fee_percentage: number;
+  minimum_payout_amount: number;
+  auto_approve_products: boolean;
+  auto_approve_vendors: boolean;
+}
+
+export interface AuditLog {
+  id: string;
+  user: User;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  changes: Record<string, any>;
+  ip_address: string;
+  created_at: string;
 }

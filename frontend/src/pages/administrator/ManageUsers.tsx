@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, Search, UserX, UserCheck, Mail, Phone } from 'lucide-react';
 import { adminAPI } from '@/services/api';
@@ -91,7 +91,7 @@ const ManageUsers = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {users?.map((user: UserType) => (
+            {Array.isArray(users) ? users.map((user: UserType) => (
               <tr key={user.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
@@ -170,7 +170,7 @@ const ManageUsers = () => {
                   </button>
                 </td>
               </tr>
-            ))}
+            )) : null}
           </tbody>
         </table>
       </div>

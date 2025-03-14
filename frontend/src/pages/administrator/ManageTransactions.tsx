@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, CheckCircle, XCircle, Eye } from 'lucide-react';
 import { adminAPI } from '@/services/api';
@@ -38,7 +38,7 @@ const ManageTransactions = () => {
   });
 
   const rejectTransactionMutation = useMutation({
-    mutationFn: (transactionId: string) => adminAPI.rejectTransaction(transactionId),
+    mutationFn: ({ transactionId, reason }: { transactionId: string; reason: string }) => adminAPI.rejectTransaction(transactionId, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-transactions'] });
       toast({
@@ -59,8 +59,8 @@ const ManageTransactions = () => {
     approveTransactionMutation.mutate(transactionId);
   };
 
-  const handleRejectTransaction = (transactionId: string) => {
-    rejectTransactionMutation.mutate(transactionId);
+  const handleRejectTransaction = (transactionId: string, reason: string) => {
+    rejectTransactionMutation.mutate({ transactionId, reason });
   };
 
   const openTransactionDetails = (transaction: Transaction) => {
@@ -117,7 +117,7 @@ const ManageTransactions = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {transactions?.map((transaction) => (
+            {transactions?.map((transaction: Transaction) => (
               <tr key={transaction.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">
@@ -169,7 +169,12 @@ const ManageTransactions = () => {
                     <CheckCircle className={`h-5 w-5 ${transaction.admin_approved ? 'opacity-50' : ''}`} />
                   </button>
                   <button
-                    onClick={() => handleRejectTransaction(transaction.id)}
+                    onClick={() => {
+                      const reason = prompt('Please enter the reason for rejection:');
+                      if (reason) {
+                        handleRejectTransaction(transaction.id, reason);
+                      }
+                    }}
                     className="text-red-600 hover:text-red-900"
                     title="Reject"
                     disabled={transaction.status === 'failed'}
