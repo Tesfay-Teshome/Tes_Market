@@ -10,7 +10,7 @@ const ManageUsers = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: users, error: usersError, isLoading } = useQuery({
+  const { data: users, isLoading } = useQuery({
     queryKey: ['admin-users', searchTerm],
     queryFn: async () => {
       const response = await adminAPI.getUsers(searchTerm);

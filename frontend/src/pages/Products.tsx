@@ -38,7 +38,7 @@ const Products = () => {
   });
 
   // Fetch products with filters
-  const { data: productsData, error: productsError } = useQuery<Product[]>({
+  const { data: productsData } = useQuery<Product[]>({
     queryKey: ['products', searchTerm, selectedCategory, priceRange, sortBy],
     queryFn: async () => {
       const params: Record<string, any> = {};

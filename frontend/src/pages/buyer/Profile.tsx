@@ -8,7 +8,7 @@ import { RootState } from '@/store';
 import api from '@/lib/axios';
 import { useToast } from '@/components/ui/use-toast';
 import { useQuery } from 'react-query';
-import profileAPI from '@/lib/api/profile';
+import profileAPI from "@/lib/api/profile";
 
 const profileSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),

@@ -10,8 +10,19 @@ const Vendors = () => {
   const { data: vendorsData, error: vendorsError } = useQuery<User[]>({
     queryKey: ['vendors'],
     queryFn: async () => {
-      const response = await api.get('/users/?user_type=vendor&is_verified=true');
-      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
+      try {
+        const response = await api.get('/users/?user_type=vendor&is_verified=true');
+        return Array.isArray(response.data) ? response.data : [];
+      } catch (error) {
+        if (error.response) {
+          if (error.response.status === 401) {
+            console.error('Unauthorized access. Please log in again.');
+          } else if (error.response.status === 400) {
+            console.error('Bad request. Please check your input.');
+          }
+        }
+        return [];
+      }
     },
   });
 
