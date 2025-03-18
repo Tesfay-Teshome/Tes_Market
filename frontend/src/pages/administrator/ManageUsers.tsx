@@ -10,17 +10,18 @@ const ManageUsers = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: users, isLoading } = useQuery({
+  const { data: users, error: usersError, isLoading } = useQuery({
     queryKey: ['admin-users', searchTerm],
     queryFn: async () => {
       const response = await adminAPI.getUsers(searchTerm);
-      return response.data;
+      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
     },
   });
 
-  const updateUserStatusMutation = useMutation({
-    mutationFn: ({ userId, isActive }: { userId: string; isActive: boolean }) => 
-      adminAPI.updateUserStatus(userId, isActive),
+  const updateUserStatusMutation = useMutation<void, Error, { userId: string; isActive: boolean }>({
+    mutationFn: async ({ userId, isActive }) => {
+      await adminAPI.updateUserStatus(userId, isActive);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       toast({
@@ -28,10 +29,10 @@ const ManageUsers = () => {
         description: 'User status updated successfully.',
       });
     },
-    onError: () => {
+    onError: (error) => {
       toast({
         title: 'Error',
-        description: 'Failed to update user status.',
+        description: error.message,
         variant: 'destructive',
       });
     },

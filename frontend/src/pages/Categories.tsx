@@ -7,15 +7,15 @@ import { Category } from '@/types';
 import FadeIn from '@/components/animations/FadeIn';
 
 const Categories = () => {
-  const { data: categories, isLoading } = useQuery<Category[]>({
+  const { data: categoriesData, error: categoriesError } = useQuery<Category[]>({
     queryKey: ['categories'],
     queryFn: async () => {
       const response = await categoriesAPI.getAll();
-      return response.data;
+      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
     },
   });
 
-  if (isLoading) {
+  if (!categoriesData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -31,7 +31,7 @@ const Categories = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {categories?.map((category, index) => (
+        {categoriesData?.map((category, index) => (
           <FadeIn key={category.id} delay={index * 0.1}>
             <Link
               to={`/products?category=${category.slug}`}

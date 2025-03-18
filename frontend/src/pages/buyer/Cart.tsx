@@ -16,12 +16,11 @@ const Cart = () => {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   // Fetch cart data
-  const { data: cartData } = useQuery({
+  const { data: cartData, error: cartError } = useQuery<Cart[]>({
     queryKey: ['cart'],
     queryFn: async () => {
-      if (!isAuthenticated) return null;
-      const response = await cartAPI.get();
-      return response.data;
+      const response = await cartAPI.getAll();
+      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
     },
     enabled: isAuthenticated,
     onSuccess: (data) => {

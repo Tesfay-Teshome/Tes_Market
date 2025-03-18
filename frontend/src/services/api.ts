@@ -399,6 +399,11 @@ export const adminAPI = {
   
   getAuditLogs: (params?: any) =>
     api.get('/admin/audit-logs/', { params }),
+  
+  updateUserStatus: async (userId: string, isActive: boolean) => {
+    const response = await api.patch(`/admin/users/${userId}/status`, { isActive });
+    return response.data;
+  },
 };
 
 // Messages API

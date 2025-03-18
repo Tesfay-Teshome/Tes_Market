@@ -5,15 +5,15 @@ import api from '@/lib/axios';
 import { Order } from '@/types';
 
 const Orders = () => {
-  const { data: orders, isLoading } = useQuery<Order[]>({
+  const { data: orderData, error: orderError } = useQuery<Order[]>({
     queryKey: ['orders'],
     queryFn: async () => {
       const response = await api.get('/orders/');
-      return response.data;
+      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
     },
   });
 
-  if (isLoading) {
+  if (!orderData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -26,7 +26,7 @@ const Orders = () => {
       <h1 className="text-3xl font-bold mb-8">My Orders</h1>
 
       <div className="space-y-6">
-        {orders?.map((order) => (
+        {orderData?.map((order) => (
           <div key={order.id} className="bg-white rounded-lg shadow-md p-6">
             <div className="flex items-center justify-between mb-4">
               <div>

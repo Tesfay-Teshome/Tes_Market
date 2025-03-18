@@ -7,15 +7,25 @@ import { User } from '@/types';
 import FadeIn from '@/components/animations/FadeIn';
 
 const Vendors = () => {
-  const { data: vendors, isLoading } = useQuery<User[]>({
+  const { data: vendorsData, error: vendorsError } = useQuery<User[]>({
     queryKey: ['vendors'],
     queryFn: async () => {
       const response = await api.get('/users/?user_type=vendor&is_verified=true');
-      return response.data;
+      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
     },
   });
 
-  if (isLoading) {
+  if (vendorsError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg text-gray-600">An error occurred while fetching vendors.</div>
+      </div>
+    );
+  }
+
+  const vendors = vendorsData;
+
+  if (!vendors) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

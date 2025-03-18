@@ -13,11 +13,11 @@ const Wishlist = () => {
   const queryClient = useQueryClient();
   const dispatch = useDispatch();
 
-  const { data: wishlist, isLoading } = useQuery({
+  const { data: wishlistData, error: wishlistError } = useQuery<Wishlist[]>({
     queryKey: ['wishlist'],
     queryFn: async () => {
-      const response = await wishlistAPI.get();
-      return response.data;
+      const response = await wishlistAPI.getAll();
+      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
     },
   });
 
@@ -58,15 +58,18 @@ const Wishlist = () => {
     });
   };
 
-  if (isLoading) {
+  if (wishlistError) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center">
+          <h2 className="mt-2 text-lg font-medium text-gray-900">Failed to load wishlist</h2>
+          <p className="mt-1 text-sm text-gray-500">Please try again later.</p>
+        </div>
       </div>
     );
   }
 
-  if (!wishlist?.items?.length) {
+  if (!wishlistData?.length) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center">
@@ -91,7 +94,7 @@ const Wishlist = () => {
       <h1 className="text-3xl font-bold text-gray-900 mb-8">My Wishlist</h1>
 
       <div className="grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8">
-        {wishlist.items.map((item) => (
+        {wishlistData.map((item) => (
           <div key={item.id} className="group relative">
             <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg bg-gray-200">
               <img

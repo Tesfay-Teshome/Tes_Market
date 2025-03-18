@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useLocation } from 'react-router-dom';
 import { Search, Filter, ShoppingCart, Heart, Star } from 'lucide-react';
@@ -29,16 +29,16 @@ const Products = () => {
   }, [location.search]);
 
   // Fetch categories
-  const { data: categories } = useQuery<Category[]>({
+  const { data: categoriesData } = useQuery<Category[]>({
     queryKey: ['categories'],
     queryFn: async () => {
       const response = await categoriesAPI.getAll();
-      return response.data;
+      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
     },
   });
 
   // Fetch products with filters
-  const { data: products, isLoading } = useQuery<Product[]>({
+  const { data: productsData, error: productsError } = useQuery<Product[]>({
     queryKey: ['products', searchTerm, selectedCategory, priceRange, sortBy],
     queryFn: async () => {
       const params: Record<string, any> = {};
@@ -48,12 +48,11 @@ const Products = () => {
       if (sortBy) params.ordering = sortBy;
       
       // Price range would typically be handled by the backend
-      // Here we're assuming the backend supports min_price and max_price params
       params.min_price = priceRange[0];
       params.max_price = priceRange[1];
       
       const response = await productsAPI.getAll(params);
-      return response.data;
+      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
     },
   });
 
@@ -72,11 +71,11 @@ const Products = () => {
     });
   };
 
-  const handleAddToWishlist = (productId: string) => {
+  const handleAddToWishlist = (_productId: string) => {
     // This would typically call the wishlist API
     toast({
       title: 'Added to wishlist',
-      description: 'Product has been added to your wishlist.',
+      description: 'Product has been added to your wishlist successfully.',
     });
   };
 
@@ -84,7 +83,7 @@ const Products = () => {
     setIsFilterOpen(!isFilterOpen);
   };
 
-  if (isLoading) {
+  if (!productsData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -118,11 +117,11 @@ const Products = () => {
               className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">All Categories</option>
-              {categories?.map((category) => (
+              {Array.isArray(categoriesData) ? categoriesData.map((category) => (
                 <option key={category.id} value={category.slug}>
                   {category.name}
                 </option>
-              ))}
+              )) : null}
             </select>
             <button 
               onClick={toggleFilter}
@@ -192,9 +191,9 @@ const Products = () => {
       </div>
 
       {/* Products Grid */}
-      {products && products.length > 0 ? (
+      {Array.isArray(productsData) && productsData.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map((product, index) => (
+          {productsData.map((product, index) => (
             <FadeIn key={product.id} delay={index * 0.05} direction="up">
               <div className="bg-white rounded-lg shadow-md overflow-hidden hover-card">
                 <Link to={`/products/${product.slug}`} className="block">
@@ -254,10 +253,7 @@ const Products = () => {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12">
-          <h2 className="text-2xl font-semibold text-gray-700">No products found</h2>
-          <p className="text-gray-500 mt-2">Try adjusting your search or filter criteria</p>
-        </div>
+        <p>No products found.</p>
       )}
     </div>
   );

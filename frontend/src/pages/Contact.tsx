@@ -6,6 +6,7 @@ import { Mail, Phone, MapPin, Send } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import api from '@/lib/axios';
 import FadeIn from '@/components/animations/FadeIn';
+import { useQuery, UseQueryResult } from 'react-query';
 
 const contactSchema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -26,6 +27,14 @@ const Contact = () => {
     formState: { errors, isSubmitting },
   } = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
+  });
+
+  const { data: contactData, error: contactError }: UseQueryResult<Contact[]> = useQuery<Contact[]>({
+    queryKey: ['contact'],
+    queryFn: async () => {
+      const response = await api.get('/contact/');
+      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
+    },
   });
 
   const onSubmit = async (data: ContactFormData) => {

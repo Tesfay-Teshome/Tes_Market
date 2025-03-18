@@ -43,14 +43,15 @@ const ProductDetails = () => {
   });
 
   // Fetch product details
-  const { data: product, isLoading: productLoading } = useQuery<Product>({
-    queryKey: ['product', slug],
+  const { data: productData, error: productError } = useQuery<Product[]>({
+    queryKey: ['products'],
     queryFn: async () => {
-      const response = await productsAPI.getById(slug || '');
-      return response.data;
+      const response = await productsAPI.getAll();
+      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
     },
-    enabled: !!slug,
   });
+
+  const product = productData?.find((product) => product.slug === slug);
 
   // Fetch product reviews
   const { data: reviews, isLoading: reviewsLoading } = useQuery<Review[]>({
@@ -178,15 +179,7 @@ const ProductDetails = () => {
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
     : 0;
 
-  if (productLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!product) {
+  if (productError || !product) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center">

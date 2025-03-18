@@ -8,27 +8,29 @@ import FadeIn from '@/components/animations/FadeIn';
 import ScrollReveal from '@/components/animations/ScrollReveal';
 import { productsAPI, categoriesAPI, testimonialsAPI } from '@/services/api';
 import { Product, Category, Testimonial } from '@/types';
+import { useQuery } from 'react-query';
 
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
 
 const Home = () => {
-  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+
+  const { data: featuredProducts, error: productsError } = useQuery<Product[]>({
+    queryKey: ['featured-products'],
+    queryFn: async () => {
+      const response = await productsAPI.getFeatured();
+      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
+    },
+  });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const productsResponse = await productsAPI.getFeatured();
-        const productsData = Array.isArray(productsResponse?.data)
-          ? productsResponse.data
-          : [];
-        setFeaturedProducts(productsData);
-
         const categoriesResponse = await categoriesAPI.getAll();
         const categoriesData = Array.isArray(categoriesResponse?.data)
           ? categoriesResponse.data
@@ -43,7 +45,6 @@ const Home = () => {
 
       } catch (error) {
         console.error('Error fetching home page data:', error);
-        setFeaturedProducts([]);
         setCategories([]);
         setTestimonials([]);
       } finally {
@@ -250,7 +251,7 @@ const Home = () => {
             <div key={i} className="animate-pulse bg-gray-200 h-64 rounded-lg" />
           ))}
         </div>
-      ) : featuredProducts.length > 0 ? (
+      ) : featuredProducts ? (
         <section className="py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <ScrollReveal>
