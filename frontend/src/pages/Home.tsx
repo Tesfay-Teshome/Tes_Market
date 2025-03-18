@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, Star, TrendingUp, Users, ChevronRight, Heart, Package, Shield, ArrowRight } from 'lucide-react';
+import { ShoppingBag, Star, ChevronRight, Heart, Package, Shield, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination, Navigation } from 'swiper/modules';
@@ -17,31 +17,39 @@ const Home = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Fetch featured products
         const productsResponse = await productsAPI.getFeatured();
-        setFeaturedProducts(productsResponse.data);
-        
-        // Fetch categories
+        const productsData = Array.isArray(productsResponse?.data)
+          ? productsResponse.data
+          : [];
+        setFeaturedProducts(productsData);
+
         const categoriesResponse = await categoriesAPI.getAll();
-        setCategories(categoriesResponse.data);
-        
-        // Fetch testimonials
+        const categoriesData = Array.isArray(categoriesResponse?.data)
+          ? categoriesResponse.data
+          : [];
+        setCategories(categoriesData);
+
         const testimonialsResponse = await testimonialsAPI.getAll();
-        setTestimonials(testimonialsResponse.data);
+        const testimonialsData = Array.isArray(testimonialsResponse?.data)
+          ? testimonialsResponse.data
+          : [];
+        setTestimonials(testimonialsData);
+
       } catch (error) {
         console.error('Error fetching home page data:', error);
+        setFeaturedProducts([]);
+        setCategories([]);
+        setTestimonials([]);
       } finally {
         setLoading(false);
       }
     };
-    
     fetchData();
   }, []);
 
@@ -103,7 +111,6 @@ const Home = () => {
   ];
 
   return (
-    
     <div className="min-h-screen">
       {/* Hero Section with Carousel */}
       <section className="relative overflow-hidden">
@@ -237,7 +244,13 @@ const Home = () => {
       </section>
 
       {/* Featured Products Section */}
-      {featuredProducts.length > 0 && (
+      {loading ? (
+        <div className="grid grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="animate-pulse bg-gray-200 h-64 rounded-lg" />
+          ))}
+        </div>
+      ) : featuredProducts.length > 0 ? (
         <section className="py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <ScrollReveal>
@@ -261,7 +274,7 @@ const Home = () => {
                       <div className="relative">
                         <img
                           src={product.image}
-                          alt={product.name}
+                          alt={typeof product.name === 'string' ? product.name : 'Product Image'}
                           className="w-full h-64 object-cover object-center group-hover:scale-105 transition-transform duration-300"
                         />
                         <div className="absolute top-0 right-0 bg-blue-600 text-white px-3 py-1 m-2 rounded-full text-xs font-bold">
@@ -299,6 +312,10 @@ const Home = () => {
             </div>
           </div>
         </section>
+      ) : (
+        <div className="text-center py-12">
+          <p className="text-gray-500">No featured products available</p>
+        </div>
       )}
 
       {/* Categories Section */}

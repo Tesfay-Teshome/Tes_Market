@@ -176,9 +176,19 @@ const Footer = () => {
               &copy; {new Date().getFullYear()} Tes Market. All rights reserved.
             </p>
             <div className="flex items-center space-x-4 mt-4 md:mt-0">
-              <img src="https://res.cloudinary.com/dj3qdir59/image/upload/v1709652145/visa_pngrepo_com_1_qhxe1k.png" alt="Visa" className="h-8" />
-              <img src="https://res.cloudinary.com/dj3qdir59/image/upload/v1709652145/mastercard_pngrepo_com_1_ym7esc.png" alt="Mastercard" className="h-8" />
-              <img src="https://res.cloudinary.com/dj3qdir59/image/upload/v1709652145/paypal_pngrepo_com_1_hhf0er.png" alt="PayPal" className="h-8" />
+              <img src="https://js.stripe.com/v3/fingerprinted/img/visa-365c3ba4c5c5d3c58f28a8c9b5e3b4d8.png" 
+                  alt="Visa" 
+                  className="h-8" />
+
+              
+              <img src="https://js.stripe.com/v3/fingerprinted/img/mastercard-4d8844094130711885b5e41b28c9848f.png" 
+                  alt="Mastercard" 
+                  className="h-8" />
+
+           
+              <img src="https://js.stripe.com/v3/fingerprinted/img/paypal-9a73d9bea7f8aabba8d46fca6d3d709a.png" 
+                  alt="PayPal" 
+                  className="h-8" />
             </div>
           </div>
         </div>

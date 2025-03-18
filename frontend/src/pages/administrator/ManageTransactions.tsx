@@ -19,6 +19,9 @@ const ManageTransactions = () => {
     },
   });
 
+  console.log('Transactions:', transactions); // Log the value of transactions
+  const transactionList = Array.isArray(transactions) ? transactions : []; // Ensure transactions is an array
+
   const approveTransactionMutation = useMutation({
     mutationFn: (transactionId: string) => adminAPI.approveTransaction(transactionId),
     onSuccess: () => {
@@ -117,7 +120,7 @@ const ManageTransactions = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {transactions?.map((transaction: Transaction) => (
+            {transactionList.map((transaction: Transaction) => (
               <tr key={transaction.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">

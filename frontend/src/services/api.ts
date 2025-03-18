@@ -10,7 +10,9 @@ const getCsrfToken = () => {
   return tokenRow ? tokenRow.split('=')[1] : ''; // Return empty string if token is not found
 };
 
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api') as string;
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000') as string;
+
+
 
 // Extend AxiosInstance to include custom methods
 interface CustomAxiosInstance extends AxiosInstance {
@@ -51,20 +53,7 @@ api.getCategories = async () => {
   });
 };
 
-// Request interceptor
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('access_token');
-    // Add token to headers if it exists
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+
 
 // Request interceptor
 api.interceptors.request.use(
@@ -84,23 +73,32 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Only handle 401 errors when we have a valid refresh token
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      try {
-        const refreshToken = localStorage.getItem('refresh_token');
-        const response = await axios.post(`${API_URL}/auth/token/refresh/`, {
-          refresh: refreshToken,
-        });
-
-        const { access } = response.data;
-        localStorage.setItem('access_token', access);
-
-        originalRequest.headers.Authorization = `Bearer ${access || ''}` as string;
-        return api(originalRequest);
-      } catch (error) {
+      const refreshToken = localStorage.getItem('refresh_token');
+      
+      // Immediately clear tokens and logout if no refresh token exists
+      if (!refreshToken) {
         store.dispatch(logout());
         return Promise.reject(error);
+      }
+
+      try {
+        const response = await axios.post(`${API_URL}/api/token/refresh/`, {
+          refresh: refreshToken
+        });
+
+        localStorage.setItem('access_token', response.data.access);
+        originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        store.dispatch(logout());
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
       }
     }
 
@@ -133,15 +131,12 @@ export const authAPI = {
   login: (data: { email: string; password: string }) => 
     axios.post<AuthResponse>('http://localhost:8000/api/auth/login/', data),
   
-  refreshToken: () => {
-  const refreshToken = localStorage.getItem('refresh_token'); // Ensure this key is correct
-  if (!refreshToken) {
-    console.error('No refresh token found');
-    return Promise.reject(new Error('No refresh token found'));
-  }
-  console.log('Refreshing token with payload:', { refresh: refreshToken });
-  return axios.post('http://localhost:8000/api/auth/token/refresh/', { refresh: refreshToken });
-},
+  refreshToken(refreshToken: string) {
+    console.log('Refreshing token with payload:', { refresh: refreshToken }); // Log the refresh token
+    return api.post('http://localhost:8000/api/auth/token/refresh/', {
+      refresh: refreshToken
+    });
+   },
   getCurrentUser: () =>
     api.get('/auth/user/'),
   
