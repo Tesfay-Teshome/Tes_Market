@@ -1,16 +1,22 @@
-import React from 'react';
 import { ShoppingBag, Shield, Users, TrendingUp } from 'lucide-react';
 import FadeIn from '@/components/animations/FadeIn';
 import ScrollReveal from '@/components/animations/ScrollReveal';
 import { useQuery } from '@tanstack/react-query';
-import aboutAPI from '@/api/about';
+import aboutAPI from '@/services/api';
+
+interface AboutData {
+  id: number;
+  title: string;
+  description: string;
+}
 
 const About = () => {
-  const { data: aboutData, error: aboutError } = useQuery<About[]>({
+  const { data } = useQuery<AboutData[]>({
     queryKey: ['about'],
     queryFn: async () => {
-      const response = await aboutAPI.getAll();
-      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
+      const response = await aboutAPI.get('/abouts');
+      console.log(data);
+      return Array.isArray(response.data) ? response.data : [];
     },
   });
 

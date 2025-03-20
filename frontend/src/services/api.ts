@@ -2,8 +2,6 @@ import axios, { AxiosInstance } from 'axios';
 import { store } from '@/store';
 import { logout } from '@/store/slices/authSlice';
 
-
-
 // Function to get CSRF token from cookies
 const getCsrfToken = () => {
   const tokenRow = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
@@ -12,10 +10,9 @@ const getCsrfToken = () => {
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000') as string;
 
-
-
 // Extend AxiosInstance to include custom methods
 interface CustomAxiosInstance extends AxiosInstance {
+  getProfile(): unknown;
   createCategory: (data: FormData) => Promise<any>;
   getCategories: () => Promise<any>;
   // Add other custom methods if needed
@@ -23,11 +20,9 @@ interface CustomAxiosInstance extends AxiosInstance {
 
 // Create the axios instance
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: API_URL, // Use the correct API URL
   headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
-      'X-CSRFToken': (getCsrfToken() || ''),
+    'Content-Type': 'application/json',
   },
 }) as CustomAxiosInstance;
 
@@ -45,15 +40,12 @@ api.createCategory = async (data: FormData) => {
   });
 };
 
-
 api.getCategories = async () => {
   return await api.get('/admin/categories/').catch(error => {
     console.error('Error fetching categories:', error.response ? error.response.data : error.message);
     throw error;
   });
 };
-
-
 
 // Request interceptor
 api.interceptors.request.use(
@@ -126,14 +118,14 @@ export type RegisterData = {
 
 export const authAPI = {
   register: (data: RegisterData) => 
-    axios.post('http://localhost:8000/api/auth/register/', data),
+    axios.post(`${API_URL}/api/auth/register/`, data),
   
   login: (data: { email: string; password: string }) => 
-    axios.post<AuthResponse>('http://localhost:8000/api/auth/login/', data),
+    axios.post<AuthResponse>(`${API_URL}/api/auth/login/`, data),
   
   refreshToken(refreshToken: string) {
     console.log('Refreshing token with payload:', { refresh: refreshToken }); // Log the refresh token
-    return api.post('http://localhost:8000/api/auth/token/refresh/', {
+    return api.post(`${API_URL}/api/auth/token/refresh/`, {
       refresh: refreshToken
     });
    },
@@ -158,7 +150,7 @@ export const authAPI = {
   
   createCategory: (data: FormData) => {
     const csrfToken = getCsrfToken(); // Retrieve CSRF token
-    return axios.post('http://localhost:8000/api/admin/categories/', data, {
+    return axios.post(`${API_URL}/api/admin/categories/`, data, {
       headers: {
         'Content-Type': 'multipart/form-data',
         'X-CSRFToken': csrfToken,
@@ -359,6 +351,8 @@ export const adminAPI = {
   
   getCategories: () =>
     api.get('/admin/categories/'),
+  
+  createCategory: (data: any) => axios.post('/admin/categories', data),
   
   updateCategory: (id: string, data: FormData) =>
     api.patch(`/admin/categories/${id}/`, data, {

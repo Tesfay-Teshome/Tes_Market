@@ -54,15 +54,14 @@ const Login = () => {
       if (from !== '/') {
         navigate(from);
       } else {
-        switch (user.user_type) {
-          case 'administrator':
-            navigate('/administrator');
-            break;
-          case 'vendor':
-            navigate('/vendor');
-            break;
-          default:
-            navigate('/');
+        if (user) {
+          if (user.role === 'administrator') {
+            navigate('/admin/dashboard');
+          } else if (user.role === 'vendor') {
+            navigate('/vendor/dashboard');
+          } else {
+            navigate('/profile'); // Update this to match the correct buyer profile route
+          }
         }
       }
     } catch (error: any) {

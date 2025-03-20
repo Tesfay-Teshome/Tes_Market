@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { adminAPI } from '@/services/api';
@@ -15,7 +15,7 @@ const ManageProducts = () => {
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ['admin-products', searchTerm],
     queryFn: async () => {
-      const response = await adminAPI.getPendingProducts();
+      const response = await adminAPI.getProducts();
       if (searchTerm) {
         return response.data.filter((product: Product) => 
           product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

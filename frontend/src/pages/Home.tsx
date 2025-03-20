@@ -8,7 +8,7 @@ import FadeIn from '@/components/animations/FadeIn';
 import ScrollReveal from '@/components/animations/ScrollReveal';
 import { productsAPI, categoriesAPI, testimonialsAPI } from '@/services/api';
 import { Product, Category, Testimonial } from '@/types';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import 'swiper/css';
 import 'swiper/css/pagination';

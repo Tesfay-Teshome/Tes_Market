@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { adminAPI } from '@/services/api';
@@ -12,7 +12,7 @@ const categorySchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   description: z.string().optional(),
   parent_id: z.string().optional(),
-});
+}); 
 
 type CategoryFormData = z.infer<typeof categorySchema>;
 
@@ -41,11 +41,11 @@ const ManageCategories = () => {
   });
 
   const createCategoryMutation = useMutation({
-    mutationFn: (data: CategoryFormData) => adminAPI.createCategory(data),
+    mutationFn: (data: CategoryFormData) => adminAPI.createCategory(data as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
       toast({
-        title: 'Success',
+       title: 'Success',
         description: 'Category added successfully.',
       });
       setIsAddModalOpen(false);
@@ -61,8 +61,17 @@ const ManageCategories = () => {
   });
 
   const updateCategoryMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: CategoryFormData }) => 
-      adminAPI.updateCategory(id, data),
+    mutationFn: ({ id, data }: { id: string; data: CategoryFormData }) => {
+      const formData = new FormData();
+      formData.append('name', data.name);
+      if (data.description) {
+        formData.append('description', data.description);
+      }
+      if (data.parent_id) {
+        formData.append('parent_id', data.parent_id);
+      }
+      return adminAPI.updateCategory(id, formData);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
       toast({

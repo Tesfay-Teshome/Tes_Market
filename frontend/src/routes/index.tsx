@@ -33,65 +33,67 @@ import VendorProducts from '@/pages/vendor/Products';
 import VendorOrders from '@/pages/vendor/Orders';
 import VendorEarnings from '@/pages/vendor/Earnings';
 
-const AppRoutes = () => {
-  return (
-    <Routes>
-      {/* Public Routes */}
-      <Route element={<MainLayout />}>
-        <Route index element={<Home />} />
-        <Route path="products" element={<Products />} />
-        <Route path="products/:slug" element={<ProductDetails />} />
-        <Route path="categories" element={<Categories />} />
-        <Route path="vendors" element={<Vendors />} />
-        <Route path="about" element={<About />} />
-        <Route path="contact" element={<Contact />} />
-        <Route path="login" element={<Login />} />
-        <Route path="register" element={<Register />} />
+const AppRoutes = () => (
+  <Routes>
+    {/* Public Routes */}
+    <Route element={<MainLayout />}>
+      <Route index element={<Home />} />
+      <Route path="products" element={<Products />} />
+      <Route path="products/:slug" element={<ProductDetails />} />
+      <Route path="categories" element={<Categories />} />
+      <Route path="vendors" element={<Vendors />} />
+      <Route path="about" element={<About />} />
+      <Route path="contact" element={<Contact />} />
+      <Route path="login" element={<Login />} />
+      <Route path="register" element={<Register />} />
 
-        {/* Protected Buyer Routes */}
-        <Route element={<ProtectedRoute children={undefined} />}>
-          <Route path="cart" element={<Cart />} />
-          <Route path="checkout" element={<Checkout />} />
-          <Route path="orders" element={<Orders />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="wishlist" element={<Wishlist />} />
-        </Route>
+      {/* Protected Buyer Routes */}
+      <Route element={<ProtectedRoute children={undefined} />}>
+        <Route path="cart" element={<Cart />} />
+        <Route path="checkout" element={<Checkout />} />
+        <Route path="orders" element={<Orders />} />
+        <Route path="profile" element={<Profile />} />
+        <Route path="wishlist" element={<Wishlist />} />
       </Route>
+    </Route>
 
-      {/* Administrator Routes */}
-      <Route
-        element={
-          <ProtectedRoute requiredRole="administrator">
-            <AdministratorLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="administrator">
-          <Route index element={<AdminDashboard />} />
-          <Route path="users" element={<ManageUsers />} />
-          <Route path="products" element={<ManageProducts />} />
-          <Route path="categories" element={<ManageCategories />} />
-          <Route path="transactions" element={<ManageTransactions />} />
-        </Route>
+    {/* Administrator Routes */}
+    <Route
+      element={
+        <ProtectedRoute requiredRole="administrator">
+          <AdministratorLayout />
+        </ProtectedRoute>
+      }
+    >
+      <Route path="administrator">
+        <Route index element={<AdminDashboard />} />
+        <Route path="users" element={<ManageUsers />} />
+        <Route path="products" element={<ManageProducts />} />
+        <Route path="categories" element={<ManageCategories />} />
+        <Route path="transactions" element={<ManageTransactions />} />
       </Route>
+    </Route>
 
-      {/* Vendor Routes */}
-      <Route
-        element={
-          <ProtectedRoute requiredRole="vendor">
-            <VendorLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="vendor">
-          <Route index element={<VendorDashboard />} />
-          <Route path="products" element={<VendorProducts />} />
-          <Route path="orders" element={<VendorOrders />} />
-          <Route path="earnings" element={<VendorEarnings />} />
-        </Route>
+    {/* Vendor Routes */}
+    <Route
+      element={
+        <ProtectedRoute requiredRole="vendor">
+          <VendorLayout />
+        </ProtectedRoute>
+      }
+    >
+      <Route path="vendor">
+        <Route index element={<VendorDashboard />} />
+        <Route path="products" element={<VendorProducts />} />
+        <Route path="orders" element={<VendorOrders />} />
+        <Route path="earnings" element={<VendorEarnings />} />
       </Route>
-    </Routes>
-  );
-};
+    </Route>
+
+    {/* Dashboard Routes */}
+    <Route path="/admin/dashboard" element={<AdminDashboard />} />
+    <Route path="/vendor/dashboard" element={<VendorDashboard />} />
+  </Routes>
+);
 
 export default AppRoutes;

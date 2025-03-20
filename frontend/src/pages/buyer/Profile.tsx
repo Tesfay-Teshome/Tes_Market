@@ -1,4 +1,3 @@
-import React from 'react';
 import { useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,7 +7,14 @@ import { RootState } from '@/store';
 import api from '@/lib/axios';
 import { useToast } from '@/components/ui/use-toast';
 import { useQuery } from 'react-query';
-import profileAPI from "@/lib/api/profile";
+import profileService from '@/services/api';
+
+interface ProfileApi {
+  username: string;
+  email: string;
+  phone?: string;
+  address?: string;
+}
 
 const profileSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -23,13 +29,25 @@ const Profile = () => {
   const { user } = useSelector((state: RootState) => state.auth);
   const { toast } = useToast();
 
-  const { data: profileData, error: profileError } = useQuery<Profile[]>({
+  const { error: profileError, isLoading } = useQuery<ProfileApi[]>({
     queryKey: ['profile'],
     queryFn: async () => {
-      const response = await profileAPI.getAll();
-      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
+      const response: any = await profileService.getProfile();
+      return Array.isArray(response.data) ? response.data as ProfileApi[] : [];
     },
   });
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (profileError) {
+    toast({
+      title: 'Error',
+      description: 'Failed to load profile data.',
+      variant: 'destructive',
+    });
+  }
 
   const {
     register,
@@ -38,10 +56,10 @@ const Profile = () => {
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      username: user?.username,
-      email: user?.email,
-      phone: user?.phone,
-      address: user?.address,
+      username: user?.username || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      address: user?.address || '',
     },
   });
 
@@ -52,10 +70,11 @@ const Profile = () => {
         title: 'Success',
         description: 'Profile updated successfully.',
       });
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || 'Failed to update profile.';
       toast({
         title: 'Error',
-        description: 'Failed to update profile.',
+        description: errorMessage,
         variant: 'destructive',
       });
     }
