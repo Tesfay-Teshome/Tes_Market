@@ -19,7 +19,7 @@ const Home = () => {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const { data: featuredProducts } = useQuery<Product[]>({
+  const { data: featuredProducts } = useQuery({
     queryKey: ['featured-products'],
     queryFn: async () => {
       const response = await productsAPI.getFeatured();

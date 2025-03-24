@@ -15,7 +15,7 @@ const ManageProducts = () => {
   const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ['admin-products', searchTerm],
     queryFn: async () => {
-      const response = await adminAPI.getProducts();
+      const response = await adminAPI.getPendingProducts();
       if (searchTerm) {
         return response.data.filter((product: Product) => 
           product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
