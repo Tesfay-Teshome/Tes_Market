@@ -11,6 +11,7 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
+  error: string | null;
   tokens: {
     access: string | null;
     refresh: string | null;
@@ -20,7 +21,8 @@ interface AuthState {
 const initialState: AuthState = {
   user: null,
   isAuthenticated: false,
-  loading: true,
+  loading: false,
+  error: null,
   tokens: {
     access: localStorage.getItem('access_token') || null,
     refresh: localStorage.getItem('refresh_token') || null,
@@ -34,10 +36,13 @@ const authSlice = createSlice({
     setUser: (state, action: PayloadAction<User | null>) => {
       state.user = action.payload;
       state.isAuthenticated = !!action.payload;
-      state.loading = false;
+      state.error = null;
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
+    },
+    setError: (state, action: PayloadAction<string | null>) => {
+      state.error = action.payload;
     },
     setTokens: (state, action: PayloadAction<TokenResponse>) => {
       state.tokens.access = action.payload.access;
@@ -45,27 +50,17 @@ const authSlice = createSlice({
       localStorage.setItem('access_token', action.payload.access);
       localStorage.setItem('refresh_token', action.payload.refresh);
     },
-    logout: (state) => {
+    clearAuth: (state) => {
       state.user = null;
       state.isAuthenticated = false;
       state.loading = false;
+      state.error = null;
       state.tokens = {
         access: null,
         refresh: null
       };
       localStorage.clear();
     },
-    login: (state, action: PayloadAction<{ user: User; tokens: TokenResponse }>) => {
-      state.user = action.payload.user;
-      state.isAuthenticated = true;
-      state.loading = false;
-      state.tokens = {
-        access: action.payload.tokens.access,
-        refresh: action.payload.tokens.refresh
-      };
-      localStorage.setItem('access_token', action.payload.tokens.access);
-      localStorage.setItem('refresh_token', action.payload.tokens.refresh);
-    }
   },
   extraReducers: (builder) => {
     builder
@@ -91,7 +86,7 @@ const authSlice = createSlice({
   }
 });
 
-export const { setUser, setLoading, setTokens, logout, login } = authSlice.actions;
+export const { setUser, setLoading, setError, setTokens, clearAuth } = authSlice.actions;
 
 // Thunks for token refresh
 export const refreshToken = createAsyncThunk(

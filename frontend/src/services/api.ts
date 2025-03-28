@@ -1,8 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { store } from '@/store';
-import { logout } from '@/store/slices/authSlice';
-
-
+import { logout, setUser, setTokens } from '@/store/slices/authSlice';
+import { jwtDecode } from 'jwt-decode';
 
 // Function to get CSRF token from cookies
 const getCsrfToken = () => {
@@ -11,8 +10,6 @@ const getCsrfToken = () => {
 };
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000') as string;
-
-
 
 // Extend AxiosInstance to include custom methods
 interface CustomAxiosInstance extends AxiosInstance {
@@ -25,9 +22,7 @@ interface CustomAxiosInstance extends AxiosInstance {
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
-      'X-CSRFToken': (getCsrfToken() || ''),
+    'Content-Type': 'application/json',
   },
 }) as CustomAxiosInstance;
 
@@ -45,7 +40,6 @@ api.createCategory = async (data: FormData) => {
   });
 };
 
-
 api.getCategories = async () => {
   return await api.get('/admin/categories/').catch(error => {
     console.error('Error fetching categories:', error.response ? error.response.data : error.message);
@@ -53,55 +47,56 @@ api.getCategories = async () => {
   });
 };
 
+// Add token to requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-
-// Request interceptor
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token || ''}` as string;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Response interceptor
+// Handle token refresh
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
-    // Only handle 401 errors when we have a valid refresh token
+    
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-
-      const refreshToken = localStorage.getItem('refresh_token');
       
-      // Immediately clear tokens and logout if no refresh token exists
-      if (!refreshToken) {
-        store.dispatch(logout());
-        return Promise.reject(error);
-      }
-
       try {
-        const response = await axios.post(`${API_URL}/api/token/refresh/`, {
-          refresh: refreshToken
+        const refresh = localStorage.getItem('refresh_token');
+        if (!refresh) {
+          throw new Error('No refresh token available');
+        }
+
+        const response = await api.post('/api/token/refresh/', {
+          refresh: refresh,
         });
 
-        localStorage.setItem('access_token', response.data.access);
-        originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
+        const newToken = response.data.access;
+        const decoded = jwtDecode(newToken);
+
+        store.dispatch(setUser({
+          username: decoded.username,
+          email: decoded.email,
+          user_type: decoded.user_type,
+          profile_image: decoded.profile_image,
+        }));
+
+        localStorage.setItem('access_token', newToken);
+        
+        // Update the original request with the new token
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        
         return api(originalRequest);
       } catch (refreshError) {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        store.dispatch(logout());
+        localStorage.clear();
         window.location.href = '/login';
-        return Promise.reject(refreshError);
       }
     }
-
+    
     return Promise.reject(error);
   }
 );

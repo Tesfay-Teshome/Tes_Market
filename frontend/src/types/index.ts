@@ -1,19 +1,22 @@
 import { ReactNode } from 'react';
 
 export interface User {
-  id: string;
-  email: string;
+  id: number;
   username: string;
-  user_type: 'vendor' | 'buyer' | 'administrator';
-  phone?: string;
-  address?: string;
-  profile_image?: string;
-  store_name?: string;
-  store_description?: string;
+  email: string;
+  user_type: 'buyer' | 'vendor' | 'administrator';
+  profile_image: string | null;
+  phone: string | null;
+  address: string | null;
+  store_name: string | null;
+  store_description: string | null;
   is_verified: boolean;
-  created_at: string;
-  updated_at: string;
+  commission_rate: number;
+  created_at: string | null;
+  updated_at: string | null;
 }
+
+export type UserType = User['user_type'];
 
 export interface Product {
   id: string;

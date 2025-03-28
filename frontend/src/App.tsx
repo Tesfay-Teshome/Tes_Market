@@ -28,37 +28,26 @@ const App = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      const accessToken = localStorage.getItem('access_token');
-      if (accessToken) {
+    const loadUser = () => {
+      const token = localStorage.getItem('access_token');
+      if (token) {
         try {
-          const decoded = jwtDecode(accessToken);
-          // Fetch complete user data from API
-          const response = await authAPI.getCurrentUser();
-          const userData = response.data;
-          
+          const decoded = jwtDecode(token);
           dispatch(setUser({
-            id: userData.id,
-            email: userData.email,
-            username: userData.username,
+            username: decoded.username,
+            email: decoded.email,
             user_type: decoded.user_type,
-            phone: userData.phone,
-            address: userData.address,
-            profile_image: userData.profile_image,
-            store_name: userData.store_name,
-            store_description: userData.store_description,
-            is_verified: userData.is_verified,
-            created_at: userData.created_at,
-            updated_at: userData.updated_at
+            profile_image: decoded.profile_image
           }));
         } catch (error) {
-          console.error('Error initializing auth:', error);
+          console.error('Error loading user:', error);
+          localStorage.clear();
           dispatch(setUser(null));
         }
       }
     };
 
-    initializeAuth();
+    loadUser();
   }, [dispatch]);
 
   return (
@@ -67,16 +56,15 @@ const App = () => {
         <AuthProvider>
           <AppRoutes />
         </AuthProvider>
+        <Toaster />
       </Router>
-      <Toaster />
     </QueryClientProvider>
   );
 };
 
 export default App;
 
-// Helper function for JWT decoding
-const jwtDecode = (accessToken: string) => {
-  const tokenParts = accessToken.split('.');
+const jwtDecode = (token: string) => {
+  const tokenParts = token.split('.');
   return JSON.parse(atob(tokenParts[1]));
 };

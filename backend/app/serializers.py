@@ -19,6 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
     user_type = serializers.CharField(required=True)
     store_name = serializers.CharField(required=False, allow_blank=True)
     store_description = serializers.CharField(required=False, allow_blank=True)
+    profile_image = serializers.ImageField(required=False)
 
     class Meta:
         model = User
@@ -40,14 +41,19 @@ class UserSerializer(serializers.ModelSerializer):
 
         # Validate user_type
         user_type = data.get('user_type')
-        if user_type not in ['buyer', 'vendor']:
-            raise serializers.ValidationError("User type must be either 'buyer' or 'vendor'")
+        if user_type not in ['buyer', 'vendor', 'administrator']:
+            raise serializers.ValidationError("User type must be either 'buyer', 'vendor', or 'administrator'")
 
         # If user is vendor, validate required vendor fields
         if user_type == 'vendor' and not data.get('store_name'):
             raise serializers.ValidationError("Store name is required for vendors")
 
         return data
+
+    def validate_user_type(self, value):
+        if value not in ['buyer', 'vendor', 'administrator']:
+            raise serializers.ValidationError("User type must be either 'buyer', 'vendor', or 'administrator'")
+        return value
 
     def create(self, validated_data):
         # Hash the password
@@ -66,6 +72,7 @@ class UserSerializer(serializers.ModelSerializer):
             # Explicitly set user_type
             user = User.objects.create(
                 user_type=validated_data['user_type'],
+                profile_image=validated_data.get('profile_image'),
                 **validated_data
             )
             # Set full name
@@ -75,7 +82,23 @@ class UserSerializer(serializers.ModelSerializer):
 
         except IntegrityError as e:
             raise serializers.ValidationError({"username": "This email is already registered."})
-                
+
+    def update(self, instance, validated_data):
+        instance.email = validated_data.get('email', instance.email)
+        instance.username = validated_data.get('username', instance.username)
+        instance.user_type = validated_data.get('user_type', instance.user_type)
+        instance.phone = validated_data.get('phone', instance.phone)
+        instance.address = validated_data.get('address', instance.address)
+        instance.profile_image = validated_data.get('profile_image', instance.profile_image)
+        instance.store_name = validated_data.get('store_name', instance.store_name)
+        instance.store_description = validated_data.get('store_description', instance.store_description)
+        
+        if validated_data.get('password'):
+            instance.set_password(validated_data['password'])
+        
+        instance.save()
+        return instance
+    
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(
