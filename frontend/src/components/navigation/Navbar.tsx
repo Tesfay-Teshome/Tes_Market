@@ -39,8 +39,11 @@ const Navbar = () => {
   }, []);
 
   const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     dispatch(logout());
     setIsUserMenuOpen(false);
+    window.location.reload(); // Force full state reset
   };
 
   const menuVariants = {
@@ -99,6 +102,15 @@ const Navbar = () => {
                 >
                   Contact
                 </Link>
+                {user?.user_type === 'vendor' && (
+                  <Link
+                    to="/vendor/dashboard"
+                    className="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors hover:bg-blue-50"
+                  >
+                    <Store className="h-5 w-5 inline-block mr-1" />
+                    Dashboard
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -127,23 +139,13 @@ const Navbar = () => {
 
                   {/* Vendor Link */}
                   {user?.user_type === 'vendor' && (
-                    <>
-                      <Link
-                        to="/vendor"
-                        className="text-gray-600 hover:text-blue-600 transition-colors"
-                        title="Vendor Dashboard"
-                      >
-                        <Store className="h-6 w-6" />
-                      </Link>
-                      <Link
-                        to="/vendor/dashboard"
-                        className="text-gray-600 hover:text-blue-600 transition-colors"
-                        title="Vendor Dashboard"
-                      >
-                        <Store className="h-6 w-6" /> {/* Added icon for vendor dashboard */}
-                        Vendor Dashboard
-                      </Link>
-                    </>
+                    <Link
+                      to="/vendor/dashboard"
+                      className="text-gray-600 hover:text-blue-600 transition-colors"
+                      title="Vendor Dashboard"
+                    >
+                      <Store className="h-6 w-6" />
+                    </Link>
                   )}
 
                   {/* Buyer Links */}
@@ -319,6 +321,16 @@ const Navbar = () => {
                 >
                   Contact
                 </Link>
+                {user?.user_type === 'vendor' && (
+                  <Link
+                    to="/vendor/dashboard"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Store className="h-5 w-5 inline-block mr-1" />
+                    Dashboard
+                  </Link>
+                )}
               </div>
             </motion.div>
           )}

@@ -351,9 +351,6 @@ export const adminAPI = {
   getProducts: (params?: any) =>
     api.get('/admin/products/', { params }),
   
-  getPendingProducts: () =>
-    api.get('/admin/products/pending/'),
-  
   approveProduct: (id: string) =>
     api.post(`/admin/products/${id}/approve/`),
   
@@ -362,13 +359,6 @@ export const adminAPI = {
   
   getCategories: () =>
     api.get('/admin/categories/'),
-  
-  createCategory: (data: FormData) =>
-    api.post('/admin/categories/', data, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    }),
   
   updateCategory: (id: string, data: FormData) =>
     api.patch(`/admin/categories/${id}/`, data, {
@@ -467,33 +457,25 @@ export const testimonialsAPI = {
 };
 
 // About API
-export interface About {
-  id: number;
-  title: string;
-  description: string;
-  icon: string;
-}
-
 export const aboutAPI = {
-  getAll: () =>
-    api.get<About[]>('/about/'),
+  getAll: () => api.get('/api/about/'),
+  getById: (id: string) => api.get(`/api/about/${id}/`),
+  create: (data: any) => api.post('/api/about/', data),
+  update: (id: string, data: any) => api.put(`/api/about/${id}/`, data),
+  delete: (id: string) => api.delete(`/api/about/${id}/`),
 };
 
 // Profile API
-export interface Profile {
-  id: number;
-  username: string;
-  email: string;
-  phone?: string;
-  address?: string;
-}
-
 export const profileAPI = {
-  get: () =>
-    api.get<Profile>('/profile/'),
-
-  update: (data: Partial<Profile>) =>
-    api.patch<Profile>('/profile/', data),
+  getProfile: () => api.get('/api/profile/'),
+  updateProfile: (data: any) => api.put('/api/profile/', data),
+  updateProfileImage: (formData: FormData) => api.put('/api/profile/image/', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  }),
+  updatePassword: (data: any) => api.put('/api/profile/password/', data),
+  updateNotificationSettings: (data: any) => api.put('/api/profile/notifications/', data)
 };
 
 export default api;

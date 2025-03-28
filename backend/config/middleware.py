@@ -68,7 +68,7 @@ class JWTAuthMiddleware(MiddlewareMixin):
                 
             # Add user info to request
             request.user_id = payload.get('user_id')
-            request.user_role = payload.get('role')
+            request.user_type = payload.get('user_type')
             
         except jwt.ExpiredSignatureError:
             return JsonResponse(

@@ -6,7 +6,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ShoppingBag, Mail, Lock, ArrowRight, Facebook, Shield, Truck } from 'lucide-react';
 import { authAPI } from '@/services/api';
-import { setUser } from '@/store/slices/authSlice';
+import { login, setUser } from '@/store/slices/authSlice';
 import { useToast } from '@/components/ui/use-toast';
 import FadeIn from '@/components/animations/FadeIn';
 
@@ -35,16 +35,22 @@ const Login = () => {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    console.log('Login data:', data);
     try {
       setIsSubmitting(true);
-      const response = await authAPI.login({email: data.email, password: data.password });
+      const response = await authAPI.login({
+        email: data.email,
+        password: data.password
+      });
+
       const { user, access_token, refresh_token } = response.data;
-      
+
+      // Save tokens to localStorage
       localStorage.setItem('access_token', access_token);
       localStorage.setItem('refresh_token', refresh_token);
-      dispatch(setUser(user));
-      
+
+      // Update Redux store with login data
+      dispatch(login({ user, tokens: { access: access_token, refresh: refresh_token } }));
+
       toast({
         title: 'Welcome back!',
         description: 'You have successfully logged in.',
@@ -66,7 +72,6 @@ const Login = () => {
         }
       }
     } catch (error: any) {
-      console.error('Login error:', error);
       
       // Handle different types of errors
       if (error.response?.data) {

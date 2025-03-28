@@ -68,6 +68,16 @@ class RegisterView(generics.CreateAPIView):
         
 logger = logging.getLogger(__name__)
 
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
+from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.exceptions import TokenError
+import logging
+
+logger = logging.getLogger(__name__)
+
 class LoginView(generics.GenericAPIView):
     serializer_class = LoginSerializer 
     permission_classes = []
@@ -97,12 +107,18 @@ class LoginView(generics.GenericAPIView):
                     status=status.HTTP_403_FORBIDDEN
                 )
 
+            # Create refresh token and include user_type in claims
             refresh = RefreshToken.for_user(user)
+            refresh['user_type'] = user.user_type  
+            
+            access_token = refresh.access_token
+            access_token['user_type'] = user.user_type
+
             return Response({
                 'user': {
                     'id': user.id,
                     'email': user.email,
-                    'user_type': user.user_type
+                    'user_type': user.user_type  # Ensure this matches frontend
                 },
                 'access_token': str(refresh.access_token),
                 'refresh_token': str(refresh),
@@ -114,7 +130,6 @@ class LoginView(generics.GenericAPIView):
                 {'detail': 'Authentication service unavailable'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
 class IsVendorOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method in permissions.SAFE_METHODS:

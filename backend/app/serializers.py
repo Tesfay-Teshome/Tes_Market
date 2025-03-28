@@ -11,17 +11,10 @@ from .models import (
 
 User = get_user_model()
 
-from rest_framework import serializers
-from django.contrib.auth import get_user_model
-from django.contrib.auth.hashers import make_password
-from django.db import IntegrityError  # ***CRITICAL: Missing import***
-
-User = get_user_model()
-
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
     confirm_password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
-    full_name = serializers.CharField(write_only=False, required=True)  # Ensure full_name is required
+    full_name = serializers.CharField(write_only=False, required=True)
     phone_number = serializers.CharField(source='phone', required=False, allow_blank=True)
     user_type = serializers.CharField(required=True)
     store_name = serializers.CharField(required=False, allow_blank=True)
@@ -31,9 +24,8 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'id', 'username', 'email', 'password', 'confirm_password',
-            'phone_number', 'address', 'user_type', 'store_name','full_name',
-            'store_description', 'profile_image', 'is_verified',
-            'date_joined'
+            'phone_number', 'address', 'user_type', 'store_name', 'store_description',
+            'profile_image', 'is_verified', 'date_joined', 'full_name'
         )
         
         read_only_fields = ('id', 'is_verified', 'date_joined')
@@ -71,7 +63,11 @@ class UserSerializer(serializers.ModelSerializer):
         validated_data.pop('confirm_password')
 
         try:
-            user = User.objects.create(**validated_data)  # Remove create_user
+            # Explicitly set user_type
+            user = User.objects.create(
+                user_type=validated_data['user_type'],
+                **validated_data
+            )
             # Set full name
             user.full_name = full_name
             user.save()

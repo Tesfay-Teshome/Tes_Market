@@ -7,7 +7,7 @@ import { User, Mail, Phone, MapPin } from 'lucide-react';
 import { RootState } from '@/store';
 import api from '@/lib/axios';
 import { useToast } from '@/components/ui/use-toast';
-import { useQuery } from 'react-query';
+import { useQuery } from '@tanstack/react-query';
 import { profileAPI } from '@/services/api';
 
 const profileSchema = z.object({
@@ -26,7 +26,7 @@ const Profile = () => {
   const { error: profileError } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
-      const response = await profileAPI.get();
+      const response = await profileAPI.getProfile();
       return response.data;
     },
   });
