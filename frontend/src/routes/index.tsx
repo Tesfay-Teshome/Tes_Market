@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { createBrowserRouter, RouteObject } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
 import AdministratorLayout from '@/layouts/AdministratorLayout';
 import VendorLayout from '@/layouts/VendorLayout';
@@ -33,65 +33,70 @@ import VendorProducts from '@/pages/vendor/Products';
 import VendorOrders from '@/pages/vendor/Orders';
 import VendorEarnings from '@/pages/vendor/Earnings';
 
-const AppRoutes = () => {
-  return (
-    <Routes>
-      {/* Public Routes */}
-      <Route element={<MainLayout />}>
-        <Route index element={<Home />} />
-        <Route path="products" element={<Products />} />
-        <Route path="products/:slug" element={<ProductDetails />} />
-        <Route path="categories" element={<Categories />} />
-        <Route path="vendors" element={<Vendors />} />
-        <Route path="about" element={<About />} />
-        <Route path="contact" element={<Contact />} />
-        <Route path="login" element={<Login />} />
-        <Route path="register" element={<Register />} />
+const routes: RouteObject[] = [
+  // Public Routes
+  {
+    path: '/',
+    element: <MainLayout />,
+    children: [
+      { index: true, element: <Home /> },
+      { path: 'products', element: <Products /> },
+      { path: 'products/:slug', element: <ProductDetails /> },
+      { path: 'categories', element: <Categories /> },
+      { path: 'vendors', element: <Vendors /> },
+      { path: 'about', element: <About /> },
+      { path: 'contact', element: <Contact /> },
+      { path: 'login', element: <Login /> },
+      { path: 'register', element: <Register /> },
 
-        {/* Protected Buyer Routes */}
-        <Route element={<ProtectedRoute children={undefined} />}>
-          <Route path="cart" element={<Cart />} />
-          <Route path="checkout" element={<Checkout />} />
-          <Route path="orders" element={<Orders />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="wishlist" element={<Wishlist />} />
-        </Route>
-      </Route>
+      // Protected Buyer Routes
+      {
+        element: <ProtectedRoute children={undefined} />,
+        children: [
+          { path: 'cart', element: <Cart /> },
+          { path: 'checkout', element: <Checkout /> },
+          { path: 'orders', element: <Orders /> },
+          { path: 'profile', element: <Profile /> },
+          { path: 'wishlist', element: <Wishlist /> },
+        ],
+      },
+    ],
+  },
 
-      {/* Administrator Routes */}
-      <Route
-        element={
-          <ProtectedRoute requiredRole="administrator">
-            <AdministratorLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="administrator">
-          <Route index element={<AdminDashboard />} />
-          <Route path="users" element={<ManageUsers />} />
-          <Route path="products" element={<ManageProducts />} />
-          <Route path="categories" element={<ManageCategories />} />
-          <Route path="transactions" element={<ManageTransactions />} />
-        </Route>
-      </Route>
+  // Administrator Routes
+  {
+    path: 'administrator',
+    element: (
+      <ProtectedRoute requiredRole="administrator">
+        <AdministratorLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <AdminDashboard /> },
+      { path: 'users', element: <ManageUsers /> },
+      { path: 'products', element: <ManageProducts /> },
+      { path: 'categories', element: <ManageCategories /> },
+      { path: 'transactions', element: <ManageTransactions /> },
+    ],
+  },
 
-      {/* Vendor Routes */}
-      <Route
-        element={
-          <ProtectedRoute requiredRole="vendor">
-            <VendorLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="vendor">
-          <Route index element={<VendorDashboard />} />
-          <Route path="products" element={<VendorProducts />} />
-          <Route path="orders" element={<VendorOrders />} />
-          <Route path="earnings" element={<VendorEarnings />} />
-        </Route>
-      </Route>
-    </Routes>
-  );
-};
+  // Vendor Routes
+  {
+    path: 'vendor',
+    element: (
+      <ProtectedRoute requiredRole="vendor">
+        <VendorLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      { index: true, element: <VendorDashboard /> },
+      { path: 'products', element: <VendorProducts /> },
+      { path: 'orders', element: <VendorOrders /> },
+      { path: 'earnings', element: <VendorEarnings /> },
+    ],
+  },
+];
 
-export default AppRoutes;
+const router = createBrowserRouter(routes);
+
+export default router;

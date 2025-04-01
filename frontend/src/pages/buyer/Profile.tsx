@@ -1,14 +1,12 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { User, Mail, Phone, MapPin } from 'lucide-react';
-import { RootState } from '@/store';
-import api from '@/lib/axios';
-import { useToast } from '@/components/ui/use-toast';
-import { useQuery } from '@tanstack/react-query';
-import { profileAPI } from '@/services/api';
+import useAuth from '@/hooks/useAuth';
+import api from '@/services/api';
+import { toast } from '@/components/ui/use-toast';
+import { User } from '@/types';
+import { User as UserIcon, Mail, Phone, MapPin } from 'lucide-react';
 
 const profileSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -20,20 +18,10 @@ const profileSchema = z.object({
 type ProfileFormData = z.infer<typeof profileSchema>;
 
 const Profile = () => {
-  const { user } = useSelector((state: RootState) => state.auth);
-  const { toast } = useToast();
-
-  const { error: profileError } = useQuery({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      const response = await profileAPI.getProfile();
-      return response.data;
-    },
-  });
-
-  if (profileError) {
-    console.error('Error fetching profile data:', profileError);
-    return <div>Error loading profile data</div>;
+  const { user } = useAuth();
+  
+  if (!user) {
+    return <div>Loading...</div>;
   }
 
   const {
@@ -43,10 +31,10 @@ const Profile = () => {
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      username: user?.username,
-      email: user?.email,
-      phone: user?.phone,
-      address: user?.address,
+      username: user.username || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      address: user.address || '',
     },
   });
 
@@ -60,14 +48,14 @@ const Profile = () => {
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to update profile.',
+        description: 'Failed to update profile. Please try again.',
         variant: 'destructive',
       });
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="max-w-4xl mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold mb-8">My Profile</h1>
 
       <div className="bg-white rounded-lg shadow-md p-6">
@@ -80,7 +68,7 @@ const Profile = () => {
             />
           ) : (
             <div className="h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center">
-              <User className="h-8 w-8 text-gray-400" />
+              <UserIcon className="h-8 w-8 text-gray-400" />
             </div>
           )}
           <div className="ml-4">
@@ -96,7 +84,7 @@ const Profile = () => {
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User className="h-5 w-5 text-gray-400" />
+                <UserIcon className="h-5 w-5 text-gray-400" />
               </div>
               <input
                 {...register('username')}

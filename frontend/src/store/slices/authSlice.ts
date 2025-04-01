@@ -5,17 +5,16 @@ import { authAPI } from '@/services/api';
 interface TokenResponse {
   access: string;
   refresh: string;
+  user: User;
 }
 
-interface AuthState {
+export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
-  tokens: {
-    access: string | null;
-    refresh: string | null;
-  };
+  access_token: string | null;
+  refresh_token: string | null;
 }
 
 const initialState: AuthState = {
@@ -23,10 +22,8 @@ const initialState: AuthState = {
   isAuthenticated: false,
   loading: false,
   error: null,
-  tokens: {
-    access: localStorage.getItem('access_token') || null,
-    refresh: localStorage.getItem('refresh_token') || null,
-  },
+  access_token: localStorage.getItem('access_token') || null,
+  refresh_token: localStorage.getItem('refresh_token') || null,
 };
 
 const authSlice = createSlice({
@@ -38,15 +35,31 @@ const authSlice = createSlice({
       state.isAuthenticated = !!action.payload;
       state.error = null;
     },
+    setTokens: (state, action: PayloadAction<{ access: string | null; refresh: string | null }>) => {
+      state.access_token = action.payload.access;
+      state.refresh_token = action.payload.refresh;
+      if (action.payload.access !== null) {
+        localStorage.setItem('access_token', action.payload.access);
+      } else {
+        localStorage.removeItem('access_token');
+      }
+      if (action.payload.refresh !== null) {
+        localStorage.setItem('refresh_token', action.payload.refresh);
+      } else {
+        localStorage.removeItem('refresh_token');
+      }
+    },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.loading = action.payload;
     },
     setError: (state, action: PayloadAction<string | null>) => {
       state.error = action.payload;
     },
-    setTokens: (state, action: PayloadAction<TokenResponse>) => {
-      state.tokens.access = action.payload.access;
-      state.tokens.refresh = action.payload.refresh;
+    login: (state, action: PayloadAction<TokenResponse>) => {
+      state.user = action.payload.user;
+      state.isAuthenticated = true;
+      state.access_token = action.payload.access;
+      state.refresh_token = action.payload.refresh;
       localStorage.setItem('access_token', action.payload.access);
       localStorage.setItem('refresh_token', action.payload.refresh);
     },
@@ -55,10 +68,15 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.loading = false;
       state.error = null;
-      state.tokens = {
-        access: null,
-        refresh: null
-      };
+      state.access_token = null;
+      state.refresh_token = null;
+      localStorage.clear();
+    },
+    logout: (state) => {
+      state.user = null;
+      state.isAuthenticated = false;
+      state.access_token = null;
+      state.refresh_token = null;
       localStorage.clear();
     },
   },
@@ -66,10 +84,8 @@ const authSlice = createSlice({
     builder
       .addCase(refreshToken.fulfilled, (state, action) => {
         if (action.payload) {
-          state.tokens = {
-            access: action.payload.access,
-            refresh: action.payload.refresh
-          };
+          state.access_token = action.payload.access;
+          state.refresh_token = action.payload.refresh;
           localStorage.setItem('access_token', action.payload.access);
           localStorage.setItem('refresh_token', action.payload.refresh);
         }
@@ -77,65 +93,30 @@ const authSlice = createSlice({
       .addCase(refreshToken.rejected, (state) => {
         state.isAuthenticated = false;
         state.user = null;
-        state.tokens = {
-          access: null,
-          refresh: null
-        };
+        state.access_token = null;
+        state.refresh_token = null;
         localStorage.clear();
       });
-  }
+  },
 });
 
-export const { setUser, setLoading, setError, setTokens, clearAuth } = authSlice.actions;
+export const { setUser, setTokens, setLoading, setError, login, clearAuth, logout } = authSlice.actions;
 
 // Thunks for token refresh
 export const refreshToken = createAsyncThunk(
   'auth/refreshToken',
-  async (_, { dispatch }) => {
-    const refreshToken = localStorage.getItem('refresh_token');
-    
-    if (!refreshToken) {
-      localStorage.clear();
-      window.location.href = '/login';
-      return;
-    }
-
+  async (_, { rejectWithValue }) => {
     try {
+      const refreshToken = localStorage.getItem('refresh_token');
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+
       const response = await authAPI.refreshToken(refreshToken);
-      const { access } = response.data;
-      
-      // Store the new token
-      localStorage.setItem('access_token', access);
-      
-      // Get current user data
-      const userDataResponse = await authAPI.getCurrentUser();
-      const userData = userDataResponse.data;
-      
-      // Update user type from new token
-      const tokenParts = access.split('.');
-      const payload = JSON.parse(atob(tokenParts[1]));
-      
-      // Update user state with complete user data
-      dispatch(setUser({
-        id: userData.id,
-        email: userData.email,
-        username: userData.username,
-        user_type: payload.user_type,
-        phone: userData.phone,
-        address: userData.address,
-        profile_image: userData.profile_image,
-        store_name: userData.store_name,
-        store_description: userData.store_description,
-        is_verified: userData.is_verified,
-        created_at: userData.created_at,
-        updated_at: userData.updated_at
-      }));
-      
-      return { access, refresh: refreshToken };
-    } catch (error) {
+      return response.data;
+    } catch (error: any) {
       localStorage.clear();
-      window.location.href = '/login';
-      throw error;
+      return rejectWithValue(error.response?.data);
     }
   }
 );

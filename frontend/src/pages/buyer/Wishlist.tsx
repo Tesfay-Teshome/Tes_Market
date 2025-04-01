@@ -1,4 +1,3 @@
-import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingCart, Trash2 } from 'lucide-react';
@@ -13,10 +12,10 @@ const Wishlist = () => {
   const queryClient = useQueryClient();
   const dispatch = useDispatch();
 
-  const { data: wishlistData, error: wishlistError } = useQuery<Wishlist[]>({
+  const { data: wishlistData, error: wishlistError } = useQuery<WishlistItem[]>({
     queryKey: ['wishlist'],
     queryFn: async () => {
-      const response = await wishlistAPI.getAll();
+      const response = await wishlistAPI.get();
       return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
     },
   });

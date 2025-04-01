@@ -1,13 +1,15 @@
-import { BrowserRouter as Router } from 'react-router-dom';
+import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import AppRoutes from '@/routes';
 import { Toaster } from '@/components/ui/toaster';
 import useCheckAuth from '@/hooks/useCheckAuth';
 import { useSocket } from '@/hooks/useSocket';
 import { useEffect } from 'react';
 import { setUser } from './store/slices/authSlice';
-import { authAPI } from '@/services/api';
 import { useDispatch } from 'react-redux';
+import { authAPI } from '@/services/api';
+import { User } from '@/types';
+import { RouterProvider } from 'react-router-dom';
+import router from '@/routes';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,7 +22,7 @@ const queryClient = new QueryClient({
 
 const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useCheckAuth();
-  useSocket(); // Add socket connection
+  useSocket();
   return <>{children}</>;
 };
 
@@ -28,43 +30,28 @@ const App = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    const loadUser = () => {
+    const initializeAuth = async () => {
       const token = localStorage.getItem('access_token');
       if (token) {
         try {
-          const decoded = jwtDecode(token);
-          dispatch(setUser({
-            username: decoded.username,
-            email: decoded.email,
-            user_type: decoded.user_type,
-            profile_image: decoded.profile_image
-          }));
+          const user: User = await authAPI.getCurrentUser();
+          dispatch(setUser(user));
         } catch (error) {
-          console.error('Error loading user:', error);
           localStorage.clear();
-          dispatch(setUser(null));
         }
       }
     };
-
-    loadUser();
+    initializeAuth();
   }, [dispatch]);
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
+      <AuthProvider>
+        <RouterProvider router={router} />
         <Toaster />
-      </Router>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };
 
 export default App;
-
-const jwtDecode = (token: string) => {
-  const tokenParts = token.split('.');
-  return JSON.parse(atob(tokenParts[1]));
-};

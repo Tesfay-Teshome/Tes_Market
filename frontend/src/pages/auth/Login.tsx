@@ -6,7 +6,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ShoppingBag, Mail, Lock, ArrowRight, Facebook, Shield, Truck } from 'lucide-react';
 import { authAPI } from '@/services/api';
-import { login, setUser } from '@/store/slices/authSlice';
+import { setUser, setTokens } from '@/store/slices/authSlice';
 import { useToast } from '@/components/ui/use-toast';
 import FadeIn from '@/components/animations/FadeIn';
 
@@ -30,8 +30,13 @@ const Login = () => {
     register,
     handleSubmit,
     formState: { errors },
+    reset,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
   });
 
   const onSubmit = async (data: LoginFormData) => {
@@ -42,19 +47,24 @@ const Login = () => {
         password: data.password
       });
 
-      const { user, access_token, refresh_token } = response.data;
+      // Get the user data from the response
+      const { access, refresh, user } = response;
 
       // Save tokens to localStorage
-      localStorage.setItem('access_token', access_token);
-      localStorage.setItem('refresh_token', refresh_token);
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
 
       // Update Redux store with login data
-      dispatch(login({ user, tokens: { access: access_token, refresh: refresh_token } }));
+      dispatch(setUser(user));
+      dispatch(setTokens({ access, refresh }));
 
       toast({
         title: 'Welcome back!',
         description: 'You have successfully logged in.',
       });
+
+      // Reset form after successful login
+      reset();
 
       // Redirect based on user type or back to the page they came from
       if (from !== '/') {
@@ -80,6 +90,12 @@ const Login = () => {
           description: error.response.data.detail || 'Invalid email or password.',
           variant: 'destructive',
         });
+      } else if (error.message) {
+        toast({
+          title: 'Login failed',
+          description: error.message,
+          variant: 'destructive',
+        });
       } else {
         toast({
           title: 'Login failed',
@@ -87,6 +103,7 @@ const Login = () => {
           variant: 'destructive',
         });
       }
+      console.error('Login error:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -117,8 +134,10 @@ const Login = () => {
                     <Mail className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
                     <input
                       {...register('email')}
+                      type="email"
                       placeholder="Email"
-                      className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 bg-white"
+                      autoComplete="email"
                     />
                   </div>
                   {errors.email && (
@@ -133,7 +152,7 @@ const Login = () => {
                       {...register('password')}
                       type="password"
                       placeholder="Password"
-                      className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900 bg-white"
                     />
                   </div>
                   {errors.password && (
