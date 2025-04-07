@@ -1,82 +1,32 @@
 import axios, { AxiosInstance } from 'axios';
 import { store } from '@/store';
-import { setUser, setTokens } from '@/store/slices/authSlice';
-import { jwtDecode } from 'jwt-decode';
-import { User } from '@/types';
-
-// User type enum
-export enum UserTypeEnum {
-  BUYER = 'buyer',
-  VENDOR = 'vendor',
-  ADMINISTRATOR = 'administrator'
-}
-
-// Custom JWT payload type
-interface CustomJwtPayload {
-  user_type: UserTypeEnum;
-  username: string;
-  email: string;
-  profile_image: string | null;
-}
+import { logout } from '@/store/slices/authSlice';
+import { z } from 'zod';
 
 // Function to get CSRF token from cookies
-const getCsrfToken = async () => {
-  // First try to get from cookies
+const getCsrfToken = () => {
   const tokenRow = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
-  if (tokenRow) {
-    return tokenRow.split('=')[1];
-  }
-  
-  // If not found in cookies, try to get from the Django CSRF cookie
-  const djangoCsrfToken = document.cookie.split('; ').find(row => row.startsWith('csrftoken='));
-  if (djangoCsrfToken) {
-    return djangoCsrfToken.split('=')[1];
-  }
-  
-  // If still not found, fetch it from the server
-  try {
-    const response = await axios.get(`${API_URL}/api/csrf/`, {
-      withCredentials: true
-    });
-    return response.data.csrf_token;
-  } catch (error) {
-    console.error('Failed to fetch CSRF token:', error);
-    throw new Error('Failed to get CSRF token');
-  }
-};
-
-// Function to set CSRF token in cookies
-const setCsrfToken = (token: string) => {
-  document.cookie = `csrftoken=${token}; path=/; SameSite=Lax`;
-};
-
-// Initialize CSRF token when the app starts
-const initializeCsrfToken = async () => {
-  try {
-    // First try to get from existing cookie
-    const existingToken = await getCsrfToken();
-    if (existingToken) {
-      return;
-    }
-    
-    // If no existing token, fetch from server
-    const response = await axios.get(`${API_URL}/api/csrf/`, {
-      withCredentials: true
-    });
-    const token = response.data.csrf_token;
-    setCsrfToken(token);
-  } catch (error) {
-    console.error('Failed to initialize CSRF token:', error);
-    throw error;
-  }
+  return tokenRow ? tokenRow.split('=')[1] : ''; // Return empty string if token is not found
 };
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000') as string;
+
+// Profile schema
+const profileSchema = z.object({
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+});
+
+export type ProfileFormData = z.infer<typeof profileSchema>;
 
 // Extend AxiosInstance to include custom methods
 interface CustomAxiosInstance extends AxiosInstance {
   createCategory: (data: FormData) => Promise<any>;
   getCategories: () => Promise<any>;
+  getProfile: () => Promise<any>;
+  updateProfile: (data: ProfileFormData) => Promise<any>;
   // Add other custom methods if needed
 }
 
@@ -84,146 +34,146 @@ interface CustomAxiosInstance extends AxiosInstance {
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
+      'X-CSRFToken': (getCsrfToken() || ''),
   },
-  withCredentials: true, // This is important for sending cookies
 }) as CustomAxiosInstance;
 
-// Initialize CSRF token when the app starts
-initializeCsrfToken();
+// Implement the createCategory method
+api.createCategory = async (data: FormData) => {
+  const csrfToken = getCsrfToken(); // Retrieve CSRF token
+  return await api.post('/admin/categories/', data, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      'X-CSRFToken': csrfToken,
+    },
+  }).catch(error => {
+    console.error('Error adding category:', error.response ? error.response.data : error.message);
+    throw error; // Rethrow the error for further handling
+  });
+};
 
-// Add token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+api.getCategories = async () => {
+  return await api.get('/admin/categories/').catch(error => {
+    console.error('Error fetching categories:', error.response ? error.response.data : error.message);
+    throw error;
+  });
+};
 
-// Handle token refresh and errors
+// Request interceptor
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token || ''}` as string;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    
+
+    // Only handle 401 errors when we have a valid refresh token
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
+
       const refreshToken = localStorage.getItem('refresh_token');
       
+      // Immediately clear tokens and logout if no refresh token exists
+      if (!refreshToken) {
+        store.dispatch(logout());
+        return Promise.reject(error);
+      }
+
       try {
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
-        }
-        
-        const response = await axios.post(
-          `${API_URL}/api/token/refresh/`,
-          { refresh: refreshToken },
-          { withCredentials: true }
-        );
-        
-        const { access } = response.data;
-        localStorage.setItem('access_token', access);
+        const response = await axios.post(`${API_URL}/api/token/refresh/`, {
+          refresh: refreshToken
+        });
 
-        // Get complete user data from API
-        const userDataResponse = await axios.get(
-          `${API_URL}/api/users/me/`,
-          { 
-            headers: { Authorization: `Bearer ${access}` },
-            withCredentials: true
-          }
-        );
-
-        // Update user state with complete user data
-        store.dispatch(setUser(userDataResponse.data as User));
-        store.dispatch(setTokens({ access, refresh: refreshToken }));
-
-        originalRequest.headers.Authorization = `Bearer ${access}`;
+        localStorage.setItem('access_token', response.data.access);
+        originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
         return api(originalRequest);
       } catch (refreshError) {
-        localStorage.clear();
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        store.dispatch(logout());
         window.location.href = '/login';
-        throw refreshError;
+        return Promise.reject(refreshError);
       }
     }
+
     return Promise.reject(error);
   }
 );
 
+// Define the AuthResponse type
+interface AuthResponse {
+  user: any;
+  access_token: string;
+  refresh_token: string;
+}
+
 // Auth API
+export type RegisterData = {
+  username: string;
+  email: string;
+  password: string;
+  confirm_password: string;
+  user_type: 'buyer' | 'vendor';
+  store_name?: string;
+  store_description?: string;
+};
+
 export const authAPI = {
-  register: async (data: any) => {
-    return await api.post('/api/auth/register/', data);
-  },
-  login: async (data: { email: string; password: string }) => {
-    try {
-      // Get CSRF token
-      const csrfToken = await getCsrfToken();
-      
-      // Prepare the request data
-      const loginData = {
-        ...data,
-        csrfmiddlewaretoken: csrfToken
-      };
-      
-      // Make the login request with proper headers
-      const response = await api.post('/api/auth/login/', loginData, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken
-        },
-        withCredentials: true
-      });
-      
-      const { access, refresh, user } = response.data;
-      
-      // Update user state with complete user data
-      store.dispatch(setUser(user as User));
-      store.dispatch(setTokens({ access, refresh }));
-      
-      return response.data;
-    } catch (error: any) {
-      console.error('Login failed:', error);
-      if (error.response?.data?.detail) {
-        throw new Error(error.response.data.detail);
-      }
-      throw error;
-    }
-  },
-  refreshToken: async (refreshToken: string) => {
-    try {
-      const response = await api.post('/api/token/refresh/', { refresh: refreshToken });
-      return response.data;
-    } catch (error: any) {
-      console.error('Refresh token failed:', error);
-      throw error;
-    }
-  },
-  getCurrentUser: async (): Promise<User> => {
-    const response = await api.get('/api/users/me/');
-    const userData = response.data as User;
-    if (!userData) {
-      throw new Error('User data not found');
-    }
-    return userData;
-  },
-  updateProfile: async (data: any) => {
-    const response = await api.patch('/api/users/me/', data);
-    return response.data;
-  },
-  updateProfileImage: async (data: FormData) => {
-    const response = await api.patch('/api/users/me/profile-image/', data, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+  register: (data: RegisterData) => 
+    axios.post('http://localhost:8000/api/auth/register/', data),
+  
+  login: (data: { email: string; password: string }) => 
+    axios.post<AuthResponse>('http://localhost:8000/api/auth/login/', data),
+  
+  refreshToken(refreshToken: string) {
+    console.log('Refreshing token with payload:', { refresh: refreshToken }); // Log the refresh token
+    return api.post('http://localhost:8000/api/auth/token/refresh/', {
+      refresh: refreshToken
     });
-    return response.data;
-  },
-  updatePassword: async (data: any) => {
-    const response = await api.patch('/api/users/me/password/', data);
-    return response.data;
-  },
-  updateNotificationSettings: async (data: any) => {
-    const response = await api.patch('/api/users/me/notifications/', data);
-    return response.data;
+   },
+  getCurrentUser: () =>
+    api.get('/auth/user/'),
+  
+  updateProfile: (data: any) =>
+    api.patch('/auth/profile/', data),
+  
+  updateProfileImage: (formData: FormData) =>
+    api.patch('/auth/profile/image/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
+  
+  updatePassword: (data: { current_password: string; new_password: string }) =>
+    api.post('/auth/password/change/', data),
+  
+  updateNotificationSettings: (data: any) =>
+    api.patch('/auth/notifications/settings/', data),
+  
+  createCategory: (data: FormData) => {
+    const csrfToken = getCsrfToken(); // Retrieve CSRF token
+    return axios.post('http://localhost:8000/api/admin/categories/', data, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'X-CSRFToken': csrfToken,
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`, // Include the Authorization header
+      },
+    }).catch(error => {
+      console.error('Error adding category:', error.response ? error.response.data : error.message);
+      throw error; // Rethrow the error for further handling
+    });
   },
 };
 
@@ -513,25 +463,34 @@ export const testimonialsAPI = {
 };
 
 // About API
+export interface About {
+  id: number;
+  title: string;
+  description: string;
+  image: string;
+}
+
 export const aboutAPI = {
-  getAll: () => api.get('/api/about/'),
-  getById: (id: string) => api.get(`/api/about/${id}/`),
-  create: (data: any) => api.post('/api/about/', data),
-  update: (id: string, data: any) => api.put(`/api/about/${id}/`, data),
-  delete: (id: string) => api.delete(`/api/about/${id}/`),
+  getAll: () => api.get<About[]>('/about/'),
+  getById: (id: number) => api.get<About>(`/about/${id}/`),
+  create: (data: Partial<About>) => api.post<About>('/about/', data),
+  update: (id: number, data: Partial<About>) => api.put<About>(`/about/${id}/`, data),
+  delete: (id: number) => api.delete(`/about/${id}/`),
 };
 
-// Profile API
-export const profileAPI = {
-  getProfile: () => api.get('/api/profile/'),
-  updateProfile: (data: any) => api.put('/api/profile/', data),
-  updateProfileImage: (formData: FormData) => api.put('/api/profile/image/', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  }),
-  updatePassword: (data: any) => api.put('/api/profile/password/', data),
-  updateNotificationSettings: (data: any) => api.put('/api/profile/notifications/', data)
+// Add profile methods
+api.getProfile = async () => {
+  return await api.get('/profile').catch(error => {
+    console.error('Error fetching profile:', error.response ? error.response.data : error.message);
+    throw error;
+  });
+};
+
+api.updateProfile = async (data: ProfileFormData) => {
+  return await api.put('/profile', data).catch(error => {
+    console.error('Error updating profile:', error.response ? error.response.data : error.message);
+    throw error;
+  });
 };
 
 export default api;

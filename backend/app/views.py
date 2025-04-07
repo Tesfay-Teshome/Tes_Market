@@ -31,7 +31,6 @@ from rest_framework.serializers import Serializer
 from django.conf import settings
 
 User = get_user_model()
-
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
@@ -69,45 +68,52 @@ class RegisterView(generics.CreateAPIView):
         
 logger = logging.getLogger(__name__)
 
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth import authenticate
-from .serializers import UserSerializer
-from rest_framework.permissions import AllowAny
-
-class LoginView(APIView):
-    permission_classes = [AllowAny]
+class LoginView(generics.GenericAPIView):
+    serializer_class = LoginSerializer 
+    permission_classes = []
 
     def post(self, request):
-        email = request.data.get('email')
-        password = request.data.get('password')
-        
-        if not email or not password:
+        try:
+            email = request.data.get('email')
+            password = request.data.get('password')
+
+            if not email or not password:
+                return Response(
+                    {'detail': 'Email and password required'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            user = authenticate(request, username=email, password=password)
+            
+            if not user:
+                return Response(
+                    {'detail': 'Invalid credentials'},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+
+            if user.user_type == 'vendor' and not user.is_verified:
+                return Response(
+                    {'detail': 'Vendor account pending verification'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'user': {
+                    'id': user.id,
+                    'email': user.email,
+                    'user_type': user.user_type
+                },
+                'access_token': str(refresh.access_token),
+                'refresh_token': str(refresh),
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Login Error: {str(e)}", exc_info=True)
             return Response(
-                {'error': 'Both email and password are required'},
-                status=status.HTTP_400_BAD_REQUEST
+                {'detail': 'Authentication service unavailable'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-        user = authenticate(email=email, password=password)
-        
-        if user is None:
-            return Response(
-                {'error': 'Invalid credentials'},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-
-        refresh = RefreshToken.for_user(user)
-        refresh['user_type'] = user.user_type
-        refresh['username'] = user.username
-        refresh['profile_image'] = user.profile_image_url
-
-        return Response({
-            'refresh': str(refresh),
-            'access': str(refresh.access_token),
-            'user': UserSerializer(user).data
-        }, status=status.HTTP_200_OK)
 
 class IsVendorOrReadOnly(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -289,7 +295,7 @@ class BuyerOrderViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Order.objects.filter(user=self.request.user)
+        return Order.objects.filter(buyer=self.request.user)
 
 class BuyerWishlistViewSet(viewsets.ModelViewSet):
     serializer_class = WishlistSerializer

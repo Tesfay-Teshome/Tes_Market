@@ -5,28 +5,22 @@ from mptt.models import MPTTModel, TreeForeignKey
 from decimal import Decimal
 
 class User(AbstractUser):
-    USER_TYPES = (
-        ('buyer', 'Buyer'),
+    USER_TYPE_CHOICES = (
         ('vendor', 'Vendor'),
-        ('administrator', 'Administrator')
+        ('buyer', 'Buyer'),
+        ('administrator', 'Administrator'),
     )
     
-    user_type = models.CharField(max_length=20, choices=USER_TYPES, default='buyer')
+    user_type = models.CharField(max_length=15, choices=USER_TYPE_CHOICES, default='buyer')
     full_name = models.CharField(max_length=255, default='')
-    phone = models.CharField(max_length=20, blank=True, null=True)
-    address = models.TextField(blank=True, null=True)
-    profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True)
+    phone = models.CharField(max_length=15, blank=True)
+    address = models.TextField(blank=True)
+    profile_image = models.ImageField(upload_to='profile_images/', blank=True, null=True)
     store_name = models.CharField(max_length=100, blank=True, null=True)  # For vendors
     store_description = models.TextField(blank=True, null=True)  # For vendors
     bank_account = models.CharField(max_length=50, blank=True, null=True)  # For vendors
     is_verified = models.BooleanField(default=False)  # For vendor verification
     commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=10.00)  # Platform commission rate
-
-    @property
-    def profile_image_url(self):
-        if self.profile_image:
-            return self.profile_image.url
-        return None
 
     def __str__(self):
         return self.email
@@ -44,13 +38,11 @@ class User(AbstractUser):
         return self.user_type == 'administrator'
 
     def save(self, *args, **kwargs):
+        # Ensure administrators are staff and superusers
         if self.user_type == 'administrator':
             self.is_staff = True
             self.is_superuser = True
         super().save(*args, **kwargs)
-
-    class Meta:
-        ordering = ['-date_joined']
 
 class Category(MPTTModel):
     name = models.CharField(max_length=100)

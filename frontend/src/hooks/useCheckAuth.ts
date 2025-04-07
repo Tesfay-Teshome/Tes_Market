@@ -1,42 +1,34 @@
 import { useEffect } from 'react';
-import useAuth from './useAuth';
-import { store } from '@/store';
-import { setUser, setTokens } from '@/store/slices/authSlice';
+import { useDispatch } from 'react-redux';
+import { authAPI } from '@/services/api';
+import { setUser, setLoading } from '@/store/slices/authSlice';
 
 const useCheckAuth = () => {
-  const { isAuthenticated, user, refreshToken: refreshFn } = useAuth();
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const checkAuth = async () => {
-      if (!isAuthenticated) {
-        const accessToken = localStorage.getItem('access_token');
-        const storedRefreshToken = localStorage.getItem('refresh_token');
+      const token = localStorage.getItem('access_token');
 
-        if (accessToken && storedRefreshToken) {
-          try {
-            const result = await refreshFn();
-            if (result.success) {
-              const { access, refresh } = result;
-              localStorage.setItem('access_token', access);
-              localStorage.setItem('refresh_token', refresh);
-              store.dispatch(setTokens({ access, refresh }));
-            }
-          } catch (error) {
-            console.error('Token refresh failed:', error);
-            // Clear all auth data if refresh fails
-            localStorage.clear();
-            store.dispatch(setUser(null));
-          }
-        } else {
-          // No tokens found, clear auth state
-          localStorage.clear();
-          store.dispatch(setUser(null));
-        }
+      if (!token) {
+        dispatch(setLoading(false));
+        return;
+      }
+
+      try {
+        const response = await authAPI.getCurrentUser();
+        dispatch(setUser(response.data));
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+      } finally {
+        dispatch(setLoading(false));
       }
     };
 
     checkAuth();
-  }, [isAuthenticated, user, refreshFn]);
+  }, [dispatch]);
 };
 
 export default useCheckAuth;

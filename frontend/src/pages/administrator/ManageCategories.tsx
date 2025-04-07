@@ -41,13 +41,7 @@ const ManageCategories = () => {
   });
 
   const createCategoryMutation = useMutation({
-    mutationFn: (data: CategoryFormData) => {
-      const formData = new FormData();
-      formData.append('name', data.name);
-      if (data.description) formData.append('description', data.description);
-      if (data.parent_id) formData.append('parent_id', data.parent_id);
-      return adminAPI.createCategory(formData);
-    },
+    mutationFn: (data: CategoryFormData) => adminAPI.createCategory(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
       toast({
@@ -67,13 +61,8 @@ const ManageCategories = () => {
   });
 
   const updateCategoryMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: CategoryFormData }) => {
-      const formData = new FormData();
-      formData.append('name', data.name);
-      if (data.description) formData.append('description', data.description);
-      if (data.parent_id) formData.append('parent_id', data.parent_id);
-      return adminAPI.updateCategory(id, formData);
-    },
+    mutationFn: ({ id, data }: { id: string; data: CategoryFormData }) => 
+      adminAPI.updateCategory(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
       toast({

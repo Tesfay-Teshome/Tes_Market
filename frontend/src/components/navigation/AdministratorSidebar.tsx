@@ -5,18 +5,12 @@ import {
   ShoppingBag,
   FolderTree,
   CreditCard,
-  Home,
 } from 'lucide-react';
 
 const AdministratorSidebar = () => {
   const location = useLocation();
 
   const links = [
-    {
-      to: '/',
-      icon: Home,
-      label: 'Home',
-    },
     {
       to: '/administrator',
       icon: LayoutDashboard,

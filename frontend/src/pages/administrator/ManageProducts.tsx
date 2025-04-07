@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, CheckCircle, Search, XCircle } from 'lucide-react';
+import { Search, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { adminAPI } from '@/services/api';
 import { Product } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
@@ -12,18 +12,17 @@ const ManageProducts = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: products, isLoading } = useQuery({
+  const { data: products, isLoading } = useQuery<Product[]>({
     queryKey: ['admin-products', searchTerm],
     queryFn: async () => {
       const response = await adminAPI.getPendingProducts();
-      const data = Array.isArray(response.data) ? response.data : [];
       if (searchTerm) {
-        return data.filter((product: Product) => 
+        return response.data.filter((product: Product) => 
           product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           product.vendor.username.toLowerCase().includes(searchTerm.toLowerCase())
         );
       }
-      return data;
+      return response.data;
     },
   });
 
@@ -54,6 +53,8 @@ const ManageProducts = () => {
         title: 'Success',
         description: 'Product rejected successfully.',
       });
+      setRejectingProductId(null);
+      setRejectReason('');
     },
     onError: () => {
       toast({
@@ -74,6 +75,15 @@ const ManageProducts = () => {
 
   const handleRejectProduct = () => {
     if (!rejectingProductId) return;
+    
+    if (!rejectReason.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please provide a reason for rejection.',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     rejectProductMutation.mutate({ 
       productId: rejectingProductId, 

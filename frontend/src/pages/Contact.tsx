@@ -6,7 +6,7 @@ import { Mail, Phone, MapPin, Send } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import api from '@/lib/axios';
 import FadeIn from '@/components/animations/FadeIn';
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, UseQueryResult } from 'react-query';
 
 const contactSchema = z.object({
   name: z.string().min(2, 'Name is required'),

@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, Link } from 'react-router-dom';
 import { ShoppingBag, User, Mail, Lock, Store, ArrowRight } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { authAPI, UserTypeEnum } from '@/services/api';
+import { authAPI } from '@/services/api';
 import FadeIn from '@/components/animations/FadeIn';
 
 const registerSchema = z.object({
@@ -14,7 +14,7 @@ const registerSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   confirm_password: z.string(), // Confirm password field
-  user_type: z.nativeEnum(UserTypeEnum),
+  user_type: z.enum(['buyer', 'vendor']),
   store_name: z.string().optional(),
   store_description: z.string().optional(),
 }).refine((data) => data.password === data.confirm_password, {
@@ -22,7 +22,7 @@ const registerSchema = z.object({
   path: ["confirm_password"],
 }).refine(
   (data) => {
-    if (data.user_type === UserTypeEnum.VENDOR) {
+    if (data.user_type === 'vendor') {
       return !!data.store_name && !!data.store_description;
     }
     return true;
@@ -38,7 +38,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [userType, setUserType] = useState<UserTypeEnum>(UserTypeEnum.BUYER);
+  const [userType, setUserType] = useState<'buyer' | 'vendor'>('buyer');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -48,7 +48,7 @@ const Register = () => {
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      user_type: UserTypeEnum.BUYER,
+      user_type: 'buyer',
     },
   });
 
@@ -59,7 +59,7 @@ const Register = () => {
 
       toast({
         title: 'Registration successful',
-        description: userType === UserTypeEnum.VENDOR 
+        description: userType === 'vendor' 
           ? 'Your vendor account is pending approval. We will notify you once approved.'
           : 'Please login with your credentials.',
       });
@@ -109,7 +109,7 @@ const Register = () => {
               Create your account
             </h2>
             <p className="text-gray-600 mb-8">
-              Join our marketplace and start {userType === UserTypeEnum.VENDOR ? 'selling' : 'shopping'}
+              Join our marketplace and start {userType === 'vendor' ? 'selling' : 'shopping'}
             </p>
           </div>
 
@@ -117,18 +117,18 @@ const Register = () => {
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
-                onClick={() => setUserType(UserTypeEnum.BUYER)}
+                onClick={() => setUserType('buyer')}
                 className={`p-4 rounded-lg border-2 transition-all ${
-                  userType === UserTypeEnum.BUYER
+                  userType === 'buyer'
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-blue-200'
                 }`}
               >
                 <User className={`h-6 w-6 mx-auto mb-2 ${
-                  userType === UserTypeEnum.BUYER ? 'text-blue-500' : 'text-gray-400'
+                  userType === 'buyer' ? 'text-blue-500' : 'text-gray-400'
                 }`} />
                 <p className={`text-sm font-medium ${
-                  userType === UserTypeEnum.BUYER ? 'text-blue-500' : 'text-gray-500'
+                  userType === 'buyer' ? 'text-blue-500' : 'text-gray-500'
                 }`}>
                   Buyer Account
                 </p>
@@ -136,18 +136,18 @@ const Register = () => {
 
               <button
                 type="button"
-                onClick={() => setUserType(UserTypeEnum.VENDOR)}
+                onClick={() => setUserType('vendor')}
                 className={`p-4 rounded-lg border-2 transition-all ${
-                  userType === UserTypeEnum.VENDOR
+                  userType === 'vendor'
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 hover:border-blue-200'
                 }`}
               >
                 <Store className={`h-6 w-6 mx-auto mb-2 ${
-                  userType === UserTypeEnum.VENDOR ? 'text-blue-500' : 'text-gray-400'
+                  userType === 'vendor' ? 'text-blue-500' : 'text-gray-400'
                 }`} />
                 <p className={`text-sm font-medium ${
-                  userType === UserTypeEnum.VENDOR ? 'text-blue-500' : 'text-gray-500'
+                  userType === 'vendor' ? 'text-blue-500' : 'text-gray-500'
                 }`}>
                   Vendor Account
                 </p>
@@ -239,7 +239,7 @@ const Register = () => {
               </div>
             </div>
 
-            {userType === UserTypeEnum.VENDOR && (
+            {userType === 'vendor' && (
               <div className="space-y-6">
                 <div>
                   <div className="relative">
