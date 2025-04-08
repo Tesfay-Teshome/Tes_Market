@@ -1,4 +1,3 @@
-import React from 'react';
 import { ShoppingBag, Shield, Users, TrendingUp } from 'lucide-react';
 import FadeIn from '@/components/animations/FadeIn';
 import ScrollReveal from '@/components/animations/ScrollReveal';
@@ -29,7 +28,7 @@ const About = () => {
     );
   }
 
-  if (aboutError) {
+  if (aboutError || !aboutData) {
     return (
       <div className="p-4">
         <p className="text-destructive">Failed to load about data</p>
@@ -82,30 +81,34 @@ const About = () => {
         </div>
       </section>
 
+      {/* Stats Section */}
+      <section className="py-12 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {stats.map((stat) => (
+              <div key={stat.label} className="text-center p-6 bg-white rounded-lg shadow">
+                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${stat.color} text-white mb-4`}>
+                  <stat.icon className="w-6 h-6" />
+                </div>
+                <p className="text-3xl font-bold text-gray-900 mb-2">{stat.value}</p>
+                <p className="text-gray-500">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* About Section */}
       <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="space-y-8">
-            {aboutData.map((item) => (
+            {aboutData?.map((item) => (
               <div key={item.id} className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-2xl font-bold mb-4">{item.title}</h2>
                 <p className="text-gray-600 mb-4">{item.description}</p>
                 <div className="prose prose-gray max-w-none">
                   <div dangerouslySetInnerHTML={{ __html: item.content }} />
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Stats Section */}
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${stat.color}`}>
-                  <stat.icon className="w-6 h-6 text-white" />
-                </div>
-                <h3 className="mt-4 text-2xl font-bold tracking-tight text-gray-900">{stat.value}</h3>
-                <p className="mt-1 text-sm text-gray-500">{stat.label}</p>
               </div>
             ))}
           </div>

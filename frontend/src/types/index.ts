@@ -173,7 +173,7 @@ export interface AdminDashboardMetrics {
 
 export interface Testimonial {
   id: string;
-  user: User;
+  user?: User;
   name: string;
   role: string;
   image?: string;

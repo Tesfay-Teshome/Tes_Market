@@ -38,7 +38,7 @@ const Home = () => {
     },
   });
 
-  const isLoading = testimonials === undefined;
+  const isLoading = testimonials === undefined || categories === undefined || featuredProducts === undefined;
 
   if (isLoading) {
     return (
@@ -58,8 +58,7 @@ const Home = () => {
       rating: 5,
       is_active: true,
       created_at: "",
-      updated_at: "",
-      user: undefined
+      updated_at: ""
     },
     {
       id: "2",
@@ -70,8 +69,7 @@ const Home = () => {
       rating: 5,
       is_active: true,
       created_at: "",
-      updated_at: "",
-      user: undefined
+      updated_at: ""
     },
     {
       id: "3",
@@ -82,8 +80,7 @@ const Home = () => {
       rating: 5,
       is_active: true,
       created_at: "",
-      updated_at: "",
-      user: undefined
+      updated_at: ""
     },
   ];
 
@@ -311,7 +308,7 @@ const Home = () => {
       )}
 
       {/* Categories Section */}
-      {categories?.length > 0 && (
+      {categories && categories.length > 0 && (
         <section className="py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <ScrollReveal>
