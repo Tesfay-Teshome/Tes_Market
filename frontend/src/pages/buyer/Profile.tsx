@@ -5,9 +5,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { User, Mail, Phone, MapPin } from 'lucide-react';
 import { RootState } from '@/store';
-import api from '@/services/api';
+import api from '@/lib/axios';
 import { useToast } from '@/components/ui/use-toast';
 import { useQuery } from 'react-query';
+import { profileAPI } from '@/services/api';
+
+// Define the Profile type
+interface Profile {
+  id: string;
+  username: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  profile_image?: string;
+}
 
 const profileSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -21,35 +32,68 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 const Profile = () => {
   const { user } = useSelector((state: RootState) => state.auth);
   const { toast } = useToast();
-  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue } = useForm<ProfileFormData>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: {
-      username: user?.username || '',
-      email: user?.email || '',
-      phone: user?.phone || '',
-      address: user?.address || ''
-    }
+
+  const { data: profileData, error: profileError, isLoading } = useQuery<Profile[]>({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const response = await profileAPI.get();
+      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to fetch profile",
+        variant: "destructive",
+      });
+    },
   });
 
-  useQuery('profile', () => {
-    return api.getProfile();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setValue,
+  } = useForm<ProfileFormData>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      username: profileData?.[0]?.username || "",
+      email: profileData?.[0]?.email || "",
+      phone: profileData?.[0]?.phone || "",
+      address: profileData?.[0]?.address || "",
+    },
   });
 
   const onSubmit = async (data: ProfileFormData) => {
     try {
-      await api.updateProfile(data);
+      await api.patch('/auth/profile/', data);
       toast({
-        title: "Success",
-        description: "Profile updated successfully",
+        title: 'Success',
+        description: 'Profile updated successfully.',
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Failed to update profile.',
+        variant: 'destructive',
       });
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (profileError) {
+    return (
+      <div className="p-4">
+        <p className="text-destructive">Failed to load profile data</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

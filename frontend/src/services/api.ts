@@ -1,7 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
 import { store } from '@/store';
 import { logout } from '@/store/slices/authSlice';
-import { z } from 'zod';
+
+
 
 // Function to get CSRF token from cookies
 const getCsrfToken = () => {
@@ -11,22 +12,12 @@ const getCsrfToken = () => {
 
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000') as string;
 
-// Profile schema
-const profileSchema = z.object({
-  username: z.string().min(3, 'Username must be at least 3 characters'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-});
 
-export type ProfileFormData = z.infer<typeof profileSchema>;
 
 // Extend AxiosInstance to include custom methods
 interface CustomAxiosInstance extends AxiosInstance {
   createCategory: (data: FormData) => Promise<any>;
   getCategories: () => Promise<any>;
-  getProfile: () => Promise<any>;
-  updateProfile: (data: ProfileFormData) => Promise<any>;
   // Add other custom methods if needed
 }
 
@@ -54,12 +45,15 @@ api.createCategory = async (data: FormData) => {
   });
 };
 
+
 api.getCategories = async () => {
   return await api.get('/admin/categories/').catch(error => {
     console.error('Error fetching categories:', error.response ? error.response.data : error.message);
     throw error;
   });
 };
+
+
 
 // Request interceptor
 api.interceptors.request.use(
@@ -462,35 +456,35 @@ export const testimonialsAPI = {
   delete: (id: string) => api.delete(`/testimonials/${id}/`),
 };
 
+// Profile API
+export const profileAPI = {
+  get: () =>
+    api.get('/profile/'),
+  
+  update: (data: any) =>
+    api.patch('/profile/', data),
+  
+  updateImage: (formData: FormData) =>
+    api.patch('/profile/image/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }),
+  
+  updatePassword: (data: { current_password: string; new_password: string }) =>
+    api.post('/profile/password/change/', data),
+  
+  updateNotificationSettings: (data: any) =>
+    api.patch('/profile/notifications/settings/', data),
+};
+
 // About API
-export interface About {
-  id: number;
-  title: string;
-  description: string;
-  image: string;
-}
-
 export const aboutAPI = {
-  getAll: () => api.get<About[]>('/about/'),
-  getById: (id: number) => api.get<About>(`/about/${id}/`),
-  create: (data: Partial<About>) => api.post<About>('/about/', data),
-  update: (id: number, data: Partial<About>) => api.put<About>(`/about/${id}/`, data),
+  getAll: () => api.get('/about/'),
+  getById: (id: number) => api.get(`/about/${id}/`),
+  create: (data: any) => api.post('/about/', data),
+  update: (id: number, data: any) => api.patch(`/about/${id}/`, data),
   delete: (id: number) => api.delete(`/about/${id}/`),
-};
-
-// Add profile methods
-api.getProfile = async () => {
-  return await api.get('/profile').catch(error => {
-    console.error('Error fetching profile:', error.response ? error.response.data : error.message);
-    throw error;
-  });
-};
-
-api.updateProfile = async (data: ProfileFormData) => {
-  return await api.put('/profile', data).catch(error => {
-    console.error('Error updating profile:', error.response ? error.response.data : error.message);
-    throw error;
-  });
 };
 
 export default api;

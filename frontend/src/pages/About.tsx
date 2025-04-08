@@ -5,22 +5,37 @@ import ScrollReveal from '@/components/animations/ScrollReveal';
 import { useQuery } from '@tanstack/react-query';
 import { aboutAPI } from '@/services/api';
 
-// Define the About interface
 interface About {
   id: number;
   title: string;
   description: string;
-  image: string;
+  content: string;
 }
 
 const About = () => {
-  useQuery<About[]>({
+  const { data: aboutData, error: aboutError, isLoading } = useQuery<About[]>({
     queryKey: ['about'],
     queryFn: async () => {
       const response = await aboutAPI.getAll();
-      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
+      return Array.isArray(response.data) ? response.data : [];
     },
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (aboutError) {
+    return (
+      <div className="p-4">
+        <p className="text-destructive">Failed to load about data</p>
+      </div>
+    );
+  }
 
   const stats = [
     {
@@ -67,22 +82,31 @@ const About = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-16">
+      {/* About Section */}
+      <section className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <FadeIn key={index} delay={index * 0.1}>
-                <div className="text-center">
-                  <div className={`${stat.color} inline-block p-4 rounded-lg text-white mb-4`}>
-                    <stat.icon className="h-8 w-8" />
-                  </div>
-                  <div className="text-3xl font-bold text-gray-900 mb-2">
-                    {stat.value}
-                  </div>
-                  <div className="text-gray-600">{stat.label}</div>
+          <div className="space-y-8">
+            {aboutData.map((item) => (
+              <div key={item.id} className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-2xl font-bold mb-4">{item.title}</h2>
+                <p className="text-gray-600 mb-4">{item.description}</p>
+                <div className="prose prose-gray max-w-none">
+                  <div dangerouslySetInnerHTML={{ __html: item.content }} />
                 </div>
-              </FadeIn>
+              </div>
+            ))}
+          </div>
+
+          {/* Stats Section */}
+          <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {stats.map((stat) => (
+              <div key={stat.label} className="text-center">
+                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${stat.color}`}>
+                  <stat.icon className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="mt-4 text-2xl font-bold tracking-tight text-gray-900">{stat.value}</h3>
+                <p className="mt-1 text-sm text-gray-500">{stat.label}</p>
+              </div>
             ))}
           </div>
         </div>

@@ -6,7 +6,6 @@ import { Mail, Phone, MapPin, Send } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import api from '@/lib/axios';
 import FadeIn from '@/components/animations/FadeIn';
-import { useQuery, UseQueryResult } from 'react-query';
 
 const contactSchema = z.object({
   name: z.string().min(2, 'Name is required'),
@@ -27,14 +26,6 @@ const Contact = () => {
     formState: { errors, isSubmitting },
   } = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
-  });
-
-  const { data: contactData, error: contactError }: UseQueryResult<Contact[]> = useQuery<Contact[]>({
-    queryKey: ['contact'],
-    queryFn: async () => {
-      const response = await api.get('/contact/');
-      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
-    },
   });
 
   const onSubmit = async (data: ContactFormData) => {
@@ -70,7 +61,38 @@ const Contact = () => {
           <FadeIn direction="left">
             <div className="bg-white rounded-lg shadow-lg p-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                Get in Touch
+                Contact Information
+              </h2>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <Mail className="w-6 h-6 text-blue-500" />
+                  <div>
+                    <p className="text-sm text-gray-600">Email</p>
+                    <p className="font-medium text-gray-900">support@tesmarket.com</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Phone className="w-6 h-6 text-blue-500" />
+                  <div>
+                    <p className="text-sm text-gray-600">Phone</p>
+                    <p className="font-medium text-gray-900">+1 234 567 8900</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <MapPin className="w-6 h-6 text-blue-500" />
+                  <div>
+                    <p className="text-sm text-gray-600">Location</p>
+                    <p className="font-medium text-gray-900">123 Market Street, City, Country</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </FadeIn>
+
+          <FadeIn direction="right">
+            <div className="bg-white rounded-lg shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Send us a message
               </h2>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                 <div>
@@ -148,56 +170,6 @@ const Contact = () => {
                   {isSubmitting ? 'Sending...' : 'Send Message'}
                 </button>
               </form>
-            </div>
-          </FadeIn>
-
-          <FadeIn direction="right">
-            <div className="bg-white rounded-lg shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                Contact Information
-              </h2>
-              <div className="space-y-6">
-                <div className="flex items-start">
-                  <Mail className="h-6 w-6 text-blue-600 mr-4" />
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">Email</h3>
-                    <p className="text-gray-600">support@tesmarket.com</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <Phone className="h-6 w-6 text-blue-600 mr-4" />
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">Phone</h3>
-                    <p className="text-gray-600">+1 (234) 567-8900</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start">
-                  <MapPin className="h-6 w-6 text-blue-600 mr-4" />
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">Address</h3>
-                    <p className="text-gray-600">
-                      123 Market Street
-                      <br />
-                      San Francisco, CA 94105
-                      <br />
-                      United States
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-8">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  Business Hours
-                </h3>
-                <div className="space-y-2 text-gray-600">
-                  <p>Monday - Friday: 9:00 AM - 6:00 PM</p>
-                  <p>Saturday: 10:00 AM - 4:00 PM</p>
-                  <p>Sunday: Closed</p>
-                </div>
-              </div>
             </div>
           </FadeIn>
         </div>

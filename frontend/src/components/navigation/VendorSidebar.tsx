@@ -5,12 +5,18 @@ import {
   ShoppingBag,
   Package,
   DollarSign,
+  Home,
 } from 'lucide-react';
 
 const VendorSidebar = () => {
   const location = useLocation();
 
   const links = [
+    {
+      to: '/',
+      icon: Home,
+      label: 'Home',
+    },
     {
       to: '/vendor',
       icon: LayoutDashboard,

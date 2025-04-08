@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Star, ChevronRight, Heart, Package, Shield, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -15,46 +14,41 @@ import 'swiper/css/pagination';
 import 'swiper/css/navigation';
 
 const Home = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-
   const { data: featuredProducts } = useQuery<Product[]>({
     queryKey: ['featured-products'],
     queryFn: async () => {
       const response = await productsAPI.getFeatured();
-      return Array.isArray(response.data) ? response.data : []; // Ensure this returns an array
+      return Array.isArray(response.data) ? response.data : [];
     },
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const categoriesResponse = await categoriesAPI.getAll();
-        const categoriesData = Array.isArray(categoriesResponse?.data)
-          ? categoriesResponse.data
-          : [];
-        setCategories(categoriesData);
+  const { data: categories } = useQuery<Category[]>({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const response = await categoriesAPI.getAll();
+      return Array.isArray(response.data) ? response.data : [];
+    },
+  });
 
-        const testimonialsResponse = await testimonialsAPI.getAll();
-        const testimonialsData = Array.isArray(testimonialsResponse?.data)
-          ? testimonialsResponse.data
-          : [];
-        setTestimonials(testimonialsData);
+  const { data: testimonials } = useQuery<Testimonial[]>({
+    queryKey: ['testimonials'],
+    queryFn: async () => {
+      const response = await testimonialsAPI.getAll();
+      return Array.isArray(response.data) ? response.data : [];
+    },
+  });
 
-      } catch (error) {
-        console.error('Error fetching home page data:', error);
-        setCategories([]);
-        setTestimonials([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const isLoading = testimonials === undefined;
 
-  const defaultTestimonials = [
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  const defaultTestimonials: Testimonial[] = [
     {
       id: "1",
       name: "Sarah Johnson",
@@ -64,7 +58,8 @@ const Home = () => {
       rating: 5,
       is_active: true,
       created_at: "",
-      updated_at: ""
+      updated_at: "",
+      user: undefined
     },
     {
       id: "2",
@@ -75,7 +70,8 @@ const Home = () => {
       rating: 5,
       is_active: true,
       created_at: "",
-      updated_at: ""
+      updated_at: "",
+      user: undefined
     },
     {
       id: "3",
@@ -86,11 +82,12 @@ const Home = () => {
       rating: 5,
       is_active: true,
       created_at: "",
-      updated_at: ""
+      updated_at: "",
+      user: undefined
     },
   ];
 
-  const displayTestimonials = testimonials.length > 0 ? testimonials : defaultTestimonials;
+  const displayTestimonials = testimonials?.length > 0 ? testimonials : defaultTestimonials;
 
   // Hero images for carousel
   const heroImages = [
@@ -245,13 +242,7 @@ const Home = () => {
       </section>
 
       {/* Featured Products Section */}
-      {loading ? (
-        <div className="grid grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="animate-pulse bg-gray-200 h-64 rounded-lg" />
-          ))}
-        </div>
-      ) : featuredProducts ? (
+      {featuredProducts ? (
         <section className="py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <ScrollReveal>
@@ -320,7 +311,7 @@ const Home = () => {
       )}
 
       {/* Categories Section */}
-      {categories.length > 0 && (
+      {categories?.length > 0 && (
         <section className="py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <ScrollReveal>
