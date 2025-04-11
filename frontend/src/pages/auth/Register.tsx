@@ -9,14 +9,15 @@ import { authAPI } from '@/services/api';
 import FadeIn from '@/components/animations/FadeIn';
 
 const registerSchema = z.object({
-  full_name: z.string().min(1, 'Full name is required'),
-  username: z.string().min(3, 'Username must be at least 3 characters'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  confirm_password: z.string(), // Confirm password field
+  confirm_password: z.string(),
+  full_name: z.string().min(1, 'Full name is required'),
   user_type: z.enum(['buyer', 'vendor']),
   store_name: z.string().optional(),
   store_description: z.string().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
 }).refine((data) => data.password === data.confirm_password, {
   message: "Passwords don't match",
   path: ["confirm_password"],
@@ -55,7 +56,10 @@ const Register = () => {
   const onSubmit = async (data: RegisterFormData) => {
     try {
       setIsSubmitting(true);
-      await authAPI.register(data);
+      await authAPI.register({
+        ...data,
+        username: data.email  // Set username to email since backend will generate it
+      });
 
       toast({
         title: 'Registration successful',
@@ -163,36 +167,6 @@ const Register = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <div className="relative">
-                  <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
-                  <input
-                    {...register('full_name')}
-                    placeholder="Full Name"
-                    className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
-                {errors.full_name && (
-                  <p className="mt-1 text-sm text-red-600">{errors.full_name.message}</p>
-                )}
-              </div>
-
-              <div>
-                <div className="relative">
-                  <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
-                  <input
-                    {...register('username')}
-                    placeholder="Username"
-                    className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  />
-                </div>
-                {errors.username && (
-                  <p className="mt-1 text-sm text-red-600">{errors.username.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <div className="relative">
                   <Mail className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
                   <input
                     {...register('email')}
@@ -203,6 +177,20 @@ const Register = () => {
                 </div>
                 {errors.email && (
                   <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                )}
+              </div>
+
+              <div>
+                <div className="relative">
+                  <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                  <input
+                    {...register('full_name')}
+                    placeholder="Full Name"
+                    className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                </div>
+                {errors.full_name && (
+                  <p className="mt-1 text-sm text-red-600">{errors.full_name.message}</p>
                 )}
               </div>
             </div>
@@ -268,6 +256,34 @@ const Register = () => {
                 </div>
               </div>
             )}
+
+            <div className="space-y-6">
+              <div>
+                <div className="relative">
+                  <User className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                  <input
+                    {...register('phone')}
+                    placeholder="Phone number"
+                    className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  />
+                </div>
+                {errors.phone && (
+                  <p className="mt-1 text-sm text-red-600">{errors.phone.message}</p>
+                )}
+              </div>
+
+              <div>
+                <textarea
+                  {...register('address')}
+                  rows={3}
+                  placeholder="Address"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+                {errors.address && (
+                  <p className="mt-1 text-sm text-red-600">{errors.address.message}</p>
+                )}
+              </div>
+            </div>
 
             <button
               type="submit"

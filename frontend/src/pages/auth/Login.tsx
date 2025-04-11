@@ -35,36 +35,33 @@ const Login = () => {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    console.log('Login data:', data);
     try {
       setIsSubmitting(true);
-      const response = await authAPI.login({email: data.email, password: data.password });
+      
+      // Login request
+      const response = await authAPI.login(data);
       const { user, access_token, refresh_token } = response.data;
       
+      // Store tokens
       localStorage.setItem('access_token', access_token);
       localStorage.setItem('refresh_token', refresh_token);
+      
+      // Update Redux store
       dispatch(setUser(user));
       
+      // Show success message
       toast({
         title: 'Welcome back!',
         description: 'You have successfully logged in.',
       });
 
-      // Redirect based on user type or back to the page they came from
-      if (from !== '/') {
-        navigate(from);
-      } else {
-        switch (user.user_type) {
-          case 'administrator':
-            navigate('/administrator');
-            break;
-          case 'vendor':
-            navigate('/vendor');
-            break;
-          default:
-            navigate('/');
-        }
-      }
+      // Redirect based on user type
+      const redirectPath = from !== '/' ? from : 
+        user.user_type === 'administrator' ? '/administrator' :
+        user.user_type === 'vendor' ? '/vendor' :
+        '/';
+      
+      navigate(redirectPath);
     } catch (error: any) {
       console.error('Login error:', error);
       
