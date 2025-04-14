@@ -125,30 +125,12 @@ export type RegisterData = {
 
 export const authAPI = {
   register: (data: RegisterData) => {
-    // Get CSRF token before making the request
     const csrfToken = getCsrfToken();
     
-    // If we don't have a CSRF token, first make a GET request to get one
-    if (!csrfToken) {
-      return api.get('/api/auth/registration/')
-        .then(() => {
-          const newCsrfToken = getCsrfToken();
-          return api.post('/api/auth/registration/', {
-            ...data,
-            username: data.email  // Set username to email since backend will generate it
-          }, {
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRFToken': newCsrfToken || '',
-            },
-          });
-        });
-    }
-    
-    // If we already have a CSRF token, use it directly
-    return api.post('/api/auth/registration/', {
+    // Simplified version - no need for GET request since CSRF is handled by Django
+    return api.post('/api/auth/register/', {
       ...data,
-      username: data.email  // Set username to email since backend will generate it
+      username: data.email
     }, {
       headers: {
         'Content-Type': 'application/json',
